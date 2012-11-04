@@ -66,7 +66,7 @@ float hapticUpdateInterval = 1.0;   // Update haptics at this interval in second
 float lastHapticUpdate;	   // Elapsed time since start of last haptic update
 int updatingJoint=-1;	   // Which joint is currently being updated
 PImage refImgDepth,refImgRGB;
-Boolean useDepth;
+boolean useDepth=false;
 ControlP5 cp5;
 
 void setup() {
@@ -81,7 +81,7 @@ void setup() {
     kinect.setMirror(true);
     cp5=new ControlP5(this);
     cp5.addSlider("threshold").setPosition(20,500).setSize(40,200).setRange(10,500).setValue(200);
-
+    cp5.addToggle("useDepth").setPosition(100,680).setSize(50,20) ;
     logger=createWriter("poses"+year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+".txt");
     
     // Would've been nice to initialize this above, but causes link errors to reference these before calling the SimpleOpenNI constructor or other methods
@@ -171,7 +171,6 @@ void setup() {
     ssec=second();
     smillis=millis();
 
-    useDepth=true;
 
     for (int joint=0;joint<NUM_JOINTS;joint++) {
 	currentJointPositions[joint]=new PVector();

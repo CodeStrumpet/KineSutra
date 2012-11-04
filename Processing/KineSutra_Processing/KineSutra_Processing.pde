@@ -1,87 +1,49 @@
 import SimpleOpenNI.*;
-// import and declarations for minim:
-import ddf.minim.*;
-Minim minim;
-AudioPlayer player;
-// declare our poser object
-SkeletonPoser pose;
 
 SimpleOpenNI  kinect;
 PrintWriter logger;
 
-int NUM_JOINTS = 17;
+int NUM_JOINTS = 15;
 
 int [] jointIDs;
-
+int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
 Boolean referenceJointsAreSet = false;
 float referenceJointPositions[][] = new float[NUM_JOINTS][3];
-
 float movementVectors[][] = new float[NUM_JOINTS][3];
 
 void setup() {
-
-    size(640, 480);
+    size(1024, 768);
     kinect = new SimpleOpenNI(this);
     kinect.enableDepth();
     kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
     kinect.setMirror(true);
 
-
-    int [] joints  = {SimpleOpenNI.SKEL_HEAD, 
-        SimpleOpenNI.SKEL_NECK, 
-        SimpleOpenNI.SKEL_LEFT_SHOULDER,
-        SimpleOpenNI.SKEL_LEFT_ELBOW,
-        SimpleOpenNI.SKEL_LEFT_HAND,
-        SimpleOpenNI.SKEL_RIGHT_SHOULDER,
-        SimpleOpenNI.SKEL_RIGHT_ELBOW,
-        SimpleOpenNI.SKEL_RIGHT_HAND,
-        SimpleOpenNI.SKEL_LEFT_SHOULDER,
-        SimpleOpenNI.SKEL_TORSO,
-        SimpleOpenNI.SKEL_LEFT_HIP,
-        SimpleOpenNI.SKEL_LEFT_KNEE,
-        SimpleOpenNI.SKEL_LEFT_FOOT,
-        SimpleOpenNI.SKEL_RIGHT_HIP,
-        SimpleOpenNI.SKEL_RIGHT_KNEE,
-        SimpleOpenNI.SKEL_RIGHT_FOOT,
-        SimpleOpenNI.SKEL_RIGHT_HIP};
-
-    jointIDs = joints;
-
-
-
-  // initialize the minim object
-    minim = new Minim(this);
-  // and load the stayin alive mp3 file
-  //player = minim.loadFile("stayin_alive.mp3");
-
-  // initialize the pose object
-    pose = new SkeletonPoser(kinect);
-  // rules for the right arm
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_HAND, PoseRule.ABOVE, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_HAND, PoseRule.RIGHT_OF, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_ELBOW, PoseRule.ABOVE, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_ELBOW, PoseRule.RIGHT_OF, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-  // rules for the left arm
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_ELBOW, PoseRule.BELOW, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_ELBOW, PoseRule.LEFT_OF, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_HAND, PoseRule.LEFT_OF, SimpleOpenNI.SKEL_LEFT_ELBOW);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_HAND, PoseRule.BELOW, SimpleOpenNI.SKEL_LEFT_ELBOW);
-  // rules for the right leg
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_KNEE, PoseRule.BELOW, SimpleOpenNI.SKEL_RIGHT_HIP);
-    pose.addRule(SimpleOpenNI.SKEL_RIGHT_KNEE, PoseRule.RIGHT_OF, SimpleOpenNI.SKEL_RIGHT_HIP);
-  // rules for the left leg
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_KNEE, PoseRule.BELOW, SimpleOpenNI.SKEL_LEFT_HIP);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_KNEE, PoseRule.LEFT_OF, SimpleOpenNI.SKEL_LEFT_HIP);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_FOOT, PoseRule.BELOW, SimpleOpenNI.SKEL_LEFT_KNEE);
-    pose.addRule(SimpleOpenNI.SKEL_LEFT_FOOT, PoseRule.LEFT_OF, SimpleOpenNI.SKEL_LEFT_KNEE);  
     strokeWeight(5);
     logger=createWriter("poses.txt");
+    int [] joints = new int[]{SimpleOpenNI.SKEL_HEAD, 
+		SimpleOpenNI.SKEL_NECK, 
+		SimpleOpenNI.SKEL_LEFT_SHOULDER,
+		SimpleOpenNI.SKEL_LEFT_ELBOW,
+		SimpleOpenNI.SKEL_LEFT_HAND,
+		SimpleOpenNI.SKEL_RIGHT_SHOULDER,
+		SimpleOpenNI.SKEL_RIGHT_ELBOW,
+		SimpleOpenNI.SKEL_RIGHT_HAND,
+		SimpleOpenNI.SKEL_TORSO,
+		SimpleOpenNI.SKEL_LEFT_HIP,
+		SimpleOpenNI.SKEL_LEFT_KNEE,
+		SimpleOpenNI.SKEL_LEFT_FOOT,
+		SimpleOpenNI.SKEL_RIGHT_HIP,
+		SimpleOpenNI.SKEL_RIGHT_KNEE,
+		SimpleOpenNI.SKEL_RIGHT_FOOT};
+    jointIDs=joints;
 }
+
+int liveX=0, liveY=0;
 
 void draw() {
     background(0);
     kinect.update();
-    image(kinect.depthImage(), 0, 0);
+    image(kinect.depthImage(), liveX,liveY);
     
     int currentUser = -1;
     
@@ -96,15 +58,16 @@ void draw() {
     
     // draw the skeleton in whatever color we chose
     if (currentUser > 0) {
-        processSkeletonFromCurrentFrame(currentUser);
-        
         if (shouldSendCurrentMovementVectors()) {
+	    processSkeletonFromCurrentFrame(currentUser);
             sendCurrentMovementVectors();
         }
-        
-       drawSkeleton(currentUser);        
+        pushMatrix();
+	translate(liveX,liveY);
+	drawSkeleton(currentUser);        
+	popMatrix();
     } else {
-        text("Set reference pose by pressing 'l'", 40, height - 100);
+        text("Set reference pose by pressing 'r'", 40, height - 100);
     }
 }
 
@@ -129,8 +92,13 @@ void drawSkeleton(int userId) {
 }
 
 
-void processSkeletonFromCurrentFrame(int userId) {
+void log(String s) {
+    float tm=minute()*60+second()+millis()/1000.0;
+    logger.println(tm+","+s);
+}
 
+
+void processSkeletonFromCurrentFrame(int userId) {
     float currentJointPositions[][] = new float[NUM_JOINTS][3];
 
     for (int joint = 0; joint < jointIDs.length; joint++) {
@@ -144,46 +112,64 @@ void processSkeletonFromCurrentFrame(int userId) {
         currentJointPositions[joint][2] = jointVector.z;
         
         // swap this out for function that calculates translated vectors
-        movementVectors[joint][0] = referenceJointPositions[joint][0] - currentJointPositions[joint][0];
-        movementVectors[joint][1] = referenceJointPositions[joint][1] - currentJointPositions[joint][1];
-        movementVectors[joint][2] = referenceJointPositions[joint][2] - currentJointPositions[joint][2];
-
-        //println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);        
+	if (priorJoint[joint]==-1)
+	    for (int k=0;k<3;k++)
+		movementVectors[joint][k] = referenceJointPositions[joint][k] - currentJointPositions[joint][k];
+	else {
+	    float[] relative=new float[3];
+	    float[] refrelative=new float[3];
+	    float s2=0, s2ref=0;
+	    for (int k=0;k<3;k++) {
+		relative[k] = currentJointPositions[joint][k]-currentJointPositions[priorJoint[joint]][k];
+		refrelative[k] = referenceJointPositions[joint][k]-referenceJointPositions[priorJoint[joint]][k];
+		s2+=(relative[k]*relative[k]);
+		s2ref+=(refrelative[k]*refrelative[k]);
+	    }
+	    float llen=sqrt(s2);
+	    float refllen=sqrt(s2ref);
+	    for (int k=0;k<3;k++) 
+		movementVectors[joint][k] = relative[k] - refrelative[k]*llen/refllen;
+	    log(joint + "," + currentJointPositions[joint][0]+","+ currentJointPositions[joint][1]+","+ currentJointPositions[joint][2]+","
+		+ referenceJointPositions[joint][0]+","+ referenceJointPositions[joint][1]+","+ referenceJointPositions[joint][2]+","
+		+ movementVectors[joint][0]+","+ movementVectors[joint][1]+","+ movementVectors[joint][2]);
+	}
+	logger.flush();
     }            
 }
 
-
-bool shouldSendCurrentMovementVectors() {
+Boolean shouldSendCurrentMovementVectors() {
     
     // replace with logic that determines whether our movement vectors are over a threshold and thus we should send them
-    return true;
+    return referenceJointsAreSet;
 }
 
 void sendCurrentMovementVectors() {
-    
+    float thresh=200;   // Threshold in mm of how much to be off in position to get feedback
+    for (int joint=0;joint<jointIDs.length;joint++)
+	if (priorJoint[joint]!=-1)
+	    if (abs(movementVectors[joint][0])>thresh || abs(movementVectors[joint][1])>thresh || abs(movementVectors[joint][2])>thresh )
+		directMoves(joint,movementVectors[joint][0],movementVectors[joint][1],movementVectors[joint][2]);
 }
 
-
+void directMoves(int joint, float mx, float my, float mz) {
+    println("Move joint "+ joint + "  x: " + mx + "  y: " + my + "  z: " + mz);
+}
 
 void setReferenceJointPositions(int userId) {
 
-    float tm=minute()*60+second()+millis()/1000.0;
-
     for (int joint = 0; joint < jointIDs.length; joint++) {
 
-        PVector jointVector = new PVector();
+	PVector jointVector = new PVector();
 
-        kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
+	kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
 
-        referenceJointPositions[joint][0] = jointVector.x;
-        referenceJointPositions[joint][1] = jointVector.y;
-        referenceJointPositions[joint][2] = jointVector.z;        
+	referenceJointPositions[joint][0] = jointVector.x;
+	referenceJointPositions[joint][1] = jointVector.y;
+	referenceJointPositions[joint][2] = jointVector.z;        
 
-        logger.println(tm+","+joint + "," + jointVector.x + "," + jointVector.y + "," + jointVector.z);
-        println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
+	println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
     }
     referenceJointsAreSet = true;
-    logger.flush();
 }
 
 void drawLimb(int userId, int jointType1, int jointType2)
@@ -192,33 +178,33 @@ void drawLimb(int userId, int jointType1, int jointType2)
     PVector jointPos2 = new PVector();
     float  confidence;
 
-  // draw the joint position
+    // draw the joint position
     confidence = kinect.getJointPositionSkeleton(userId, jointType1, jointPos1);
     confidence = kinect.getJointPositionSkeleton(userId, jointType2, jointPos2);
 
     line(jointPos1.x, jointPos1.y, jointPos1.z, 
-        jointPos2.x, jointPos2.y, jointPos2.z);
+	 jointPos2.x, jointPos2.y, jointPos2.z);
 }
 
 void keyPressed(){
-
     if (key == 's') {
-        saveFrame("stayin_alive_"+random(100)+".png");      
+	saveFrame("stayin_alive_"+random(100)+".png");      
     }
 
-    if (key == 'l') {
-        IntVector userList = new IntVector();
-        kinect.getUsers(userList);
-        if (userList.size() > 0) {
-            if (kinect.isTrackingSkeleton(userList.get(0))) {
-                setReferenceJointPositions(userList.get(0));              
-            } else {
-                println("Not tracking user 0");
-            }
-        }      
+    if (key == 'r') {
+	println("Acquiring reference");
+	IntVector userList = new IntVector();
+	kinect.getUsers(userList);
+	saveFrame("reference.png");      
+	if (userList.size() > 0) {
+	    if (kinect.isTrackingSkeleton(userList.get(0))) {
+		setReferenceJointPositions(userList.get(0));              
+	    } else {
+		println("Not tracking user 0");
+	    }
+	}      
     }
 }
-
 
 // user-tracking callbacks!
 void onNewUser(int userId) {
@@ -228,12 +214,12 @@ void onNewUser(int userId) {
 
 void onEndCalibration(int userId, boolean successful) {
     if (successful) { 
-        println("  User calibrated !!!");
-        kinect.startTrackingSkeleton(userId);
+	println("  User calibrated !!!");
+	kinect.startTrackingSkeleton(userId);
     } 
     else { 
-        println("  Failed to calibrate user !!!");
-        kinect.startPoseDetection("Psi", userId);
+	println("  Failed to calibrate user !!!");
+	kinect.startPoseDetection("Psi", userId);
     }
 }
 

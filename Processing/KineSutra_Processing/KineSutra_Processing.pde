@@ -21,10 +21,10 @@ int [] jointIDs;
 Boolean referenceJointsAreSet = false;  // Once we've acquired a reference
 
 // Various vectors of joint positions
-float currentJointPositions[][] = new float[NUM_JOINTS][3];
-float referenceJointPositions[][] = new float[NUM_JOINTS][3];
-float movementVectors[][] = new float[NUM_JOINTS][3];
-float targetVectors[][] = new float[NUM_JOINTS][3];
+PVector currentJointPositions[] = new PVector[NUM_JOINTS];
+PVector referenceJointPositions[] = new PVector[NUM_JOINTS];
+PVector movementVectors[] = new PVector[NUM_JOINTS];
+PVector targetVectors[] = new PVector[NUM_JOINTS];
 
 // Which joint is upstream of this joint (or -1 if none)
 int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
@@ -104,6 +104,13 @@ void setup() {
     smillis=millis();
 
     useDepth=true;
+
+    for (int joint=0;joint<NUM_JOINTS;joint++) {
+	currentJointPositions[joint]=new PVector();
+	referenceJointPositions[joint]=new PVector();
+	movementVectors[joint]=new PVector();
+	targetVectors[joint]=new PVector();
+    }
 }
 
 // Elapsed time in seconds since startup
@@ -149,6 +156,17 @@ void draw() {
     }
     // draw the skeleton in whatever color we chose
     if (currentUser > 0) {
+	// Load current joints from Kinect
+	for (int joint = 0; joint < jointIDs.length; joint++) {
+	    PVector jointVector = new PVector();
+
+	    kinect.getJointPositionSkeleton(currentUser, jointIDs[joint], jointVector);
+        
+	    currentJointPositions[joint].x = jointVector.x;
+	    currentJointPositions[joint].y = jointVector.y;
+	    currentJointPositions[joint].z = jointVector.z;
+	}
+
         if (shouldSendCurrentMovementVectors()) {
 	    processSkeletonFromCurrentFrame(currentUser);
             sendCurrentMovementVectors();
@@ -179,7 +197,7 @@ void drawSkeleton() {
 }
 
 // Draw all limbs using joint points in p
-void drawLimbs(float p[][]) {
+void drawLimbs(PVector p[]) {
     drawLimb(p,SKEL_HEAD, SKEL_NECK);
     drawLimb(p,SKEL_NECK, SKEL_LEFT_SHOULDER);
     drawLimb(p,SKEL_LEFT_SHOULDER, SKEL_LEFT_ELBOW);
@@ -199,15 +217,15 @@ void drawLimbs(float p[][]) {
 }
 
 // Draw limb using joint points in p
-void drawLimb(float p[][],int joint1, int joint2) {
+void drawLimb(PVector p[],int joint1, int joint2) {
      PVector p1world=new PVector(),p2world=new PVector();
      PVector p1proj=new PVector(), p2proj=new PVector();
-     p1world.x=p[joint1][0];
-     p1world.y=p[joint1][1];
-     p1world.z=p[joint1][2];
-     p2world.x=p[joint2][0];
-     p2world.y=p[joint2][1];
-     p2world.z=p[joint2][2];
+     p1world.x=p[joint1].x;
+     p1world.y=p[joint1].y;
+     p1world.z=p[joint1].z;
+     p2world.x=p[joint2].x;
+     p2world.y=p[joint2].y;
+     p2world.z=p[joint2].z;
      
      kinect.convertRealWorldToProjective(p1world,p1proj);
      kinect.convertRealWorldToProjective(p2world,p2proj);
@@ -221,35 +239,22 @@ void log(String s) {
 
 // Process current skeleton position to determine movements needed
 void processSkeletonFromCurrentFrame(int userId) {
-    // Load current joints from Kinect
-    for (int joint = 0; joint < jointIDs.length; joint++) {
-        PVector jointVector = new PVector();
-
-        kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
-        
-        currentJointPositions[joint][0] = jointVector.x;
-        currentJointPositions[joint][1] = jointVector.y;
-        currentJointPositions[joint][2] = jointVector.z;
-    }
 
     // Process joints
     for (int joint = 0; joint < jointIDs.length; joint++) {
 	if (priorJoint[joint]==-1)
 	    // This joint is not relative to any other joints, set movement to 0
-	    for (int k=0;k<3;k++)
-		movementVectors[joint][k] = 0;
+	    movementVectors[joint].set(0,0,0);
 	else {
 	    // Relative joint
 	    // Movement is amount to make this joint's position relative to its 'priorJoint' (the one it is relative to) equal to the same relationship in the reference
 	    // Also, scale limb lengths in case the reference had different length limbs
-	    float[] relative=new float[3];
-	    float[] refrelative=new float[3];
-	    for (int k=0;k<3;k++) {
-		relative[k] = currentJointPositions[joint][k]-currentJointPositions[priorJoint[joint]][k];
-		refrelative[k] = referenceJointPositions[joint][k]-referenceJointPositions[priorJoint[joint]][k];
-	    }
-	    float llen=norm(relative);
-	    float refllen=norm(refrelative);
+	    PVector relative=new PVector();
+	    PVector refrelative=new PVector();
+	    relative = PVector.sub(currentJointPositions[joint],currentJointPositions[priorJoint[joint]]);
+	    refrelative = PVector.sub(referenceJointPositions[joint],referenceJointPositions[priorJoint[joint]]);
+	    float llen=relative.mag();
+	    float refllen=refrelative.mag();
 
 	    if (joint==1)
 		println("llen="+llen+",reflen="+refllen);  // Debugging - was seeing some bad lengths
@@ -260,18 +265,17 @@ void processSkeletonFromCurrentFrame(int userId) {
 		println("Not scaling reference limb "+joint+","+priorJoint[joint]+" by out of range value " + refscale);
 		refscale=1.0;
 	    }
-	    for (int k=0;k<3;k++) 
-		movementVectors[joint][k] = refrelative[k]*refscale - relative[k];
+	    
+	    movementVectors[joint] = PVector.sub(PVector.mult(refrelative,refscale),relative);
 	}
 
 	// Compute target positions from movement vectors
-	for (int k=0;k<3;k++) 
-	    targetVectors[joint][k]=currentJointPositions[joint][k]+movementVectors[joint][k];
+	targetVectors[joint]=PVector.add(currentJointPositions[joint],movementVectors[joint]);
 
 	// Log to data file for post-analysis
-	log(sample+","+joint + "," + currentJointPositions[joint][0]+","+ currentJointPositions[joint][1]+","+ currentJointPositions[joint][2]+","
-	    + referenceJointPositions[joint][0]+","+ referenceJointPositions[joint][1]+","+ referenceJointPositions[joint][2]+","
-	    + movementVectors[joint][0]+","+ movementVectors[joint][1]+","+ movementVectors[joint][2]);
+	log(sample+","+joint + "," + currentJointPositions[joint].x+","+ currentJointPositions[joint].y+","+ currentJointPositions[joint].z+","
+	    + referenceJointPositions[joint].x+","+ referenceJointPositions[joint].y+","+ referenceJointPositions[joint].z+","
+	    + movementVectors[joint].x+","+ movementVectors[joint].y+","+ movementVectors[joint].z);
     }            
     
     logger.flush();
@@ -288,27 +292,22 @@ Boolean shouldSendCurrentMovementVectors() {
     return false;
 }
 
-// L-2 norm of a 3-vector
-float norm(float[] vec) {
-    return sqrt((vec[0]*vec[0])+(vec[1]*vec[1])+(vec[2]*vec[2]));
-}
-
 // Send current movement vectors to buzzers (one at a time)
 void sendCurrentMovementVectors() {
-    if (updatingJoint==-1 || norm(movementVectors[updatingJoint])<threshold) {
+    if (updatingJoint==-1 || movementVectors[updatingJoint].mag()<threshold) {
 	// Decide which joint should be moving (starting at top and working down a limb at a time)
 	// Keep buzzing the same joint until it is within threshold, then go onto the next one that is wrong
 	updatingJoint=-1;
 	for (int joint=0;joint<jointIDs.length;joint++)
-	    if (norm(movementVectors[joint]) > threshold) {
+	    if (movementVectors[joint].mag() > threshold) {
 		updatingJoint = joint;
 		break;
 	    }
     }
     if (updatingJoint!=-1) {
 	// Buzz the current joint
-	println("Move "+jointNames[updatingJoint]+" by "+movementVectors[updatingJoint][0]+","+movementVectors[updatingJoint][1]+","+movementVectors[updatingJoint][2]);
-	buzzMoves(updatingJoint,movementVectors[updatingJoint][0],movementVectors[updatingJoint][1],movementVectors[updatingJoint][2]);
+	println("Move "+jointNames[updatingJoint]+" by "+movementVectors[updatingJoint].x+","+movementVectors[updatingJoint].y+","+movementVectors[updatingJoint].z);
+	buzzMoves(updatingJoint,movementVectors[updatingJoint].x,movementVectors[updatingJoint].y,movementVectors[updatingJoint].z);
     }
 }
 
@@ -318,9 +317,9 @@ void setReferenceJointPositions(int userId) {
 	PVector jointVector = new PVector();
 
 	kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
-	referenceJointPositions[joint][0] = jointVector.x;
-	referenceJointPositions[joint][1] = jointVector.y;
-	referenceJointPositions[joint][2] = jointVector.z;        
+	referenceJointPositions[joint].x = jointVector.x;
+	referenceJointPositions[joint].y = jointVector.y;
+	referenceJointPositions[joint].z = jointVector.z;        
 
 	println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
     }

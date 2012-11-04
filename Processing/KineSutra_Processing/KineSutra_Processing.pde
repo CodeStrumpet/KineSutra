@@ -52,7 +52,7 @@ String jointNames[]={"Head","Neck","Left Shoulder","Left Elbow","Left Hand","Rig
 
 int sample=0;   // Current sample number (primarily for logging)
 int sday,shour,smin,ssec,smillis;   // Start time of program
-float hapticUpdateInterval = 0.5;   // Update haptics at this interval
+float hapticUpdateInterval = 1.0;   // Update haptics at this interval in seconds
 float lastHapticUpdate;	   // Elapsed time since start of last haptic update
 int updatingJoint=-1;	   // Which joint is currently being updated
 
@@ -110,13 +110,15 @@ float elapsed() {
       return ((((day()-sday)*24+(hour()-shour))*60)+(minute()-smin))*60+(second()-ssec)+(millis()-smillis)/1000.0;
 }
 
+int currentUser;
+
 // Processing main draw loop
 void draw() {
     background(0);
     kinect.update();
     image(kinect.depthImage(), uiImagePosX,uiImagePosY);
     
-    int currentUser = -1;
+     currentUser = -1;
     
     IntVector userList = new IntVector();
     kinect.getUsers(userList);
@@ -146,6 +148,10 @@ void draw() {
 // Current position in red,  target position in green
 void drawSkeleton() {
     strokeWeight(5);
+    stroke(0,0,255);
+    // For comparision
+    kinect.drawLimb(currentUser, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
+
     stroke(255,0,0);
     drawLimbs(currentJointPositions);
     if (referenceJointsAreSet) {
@@ -176,7 +182,24 @@ void drawLimbs(float p[][]) {
 
 // Draw limb using joint points in p
 void drawLimb(float p[][],int joint1, int joint2) {
-    line(p[joint1][0],p[joint1][1],p[joint1][2],p[joint2][0],p[joint2][1],p[joint2][2]);
+     PVector p1world=new PVector(),p2world=new PVector();
+     PVector p1proj=new PVector(), p2proj=new PVector();
+     p1world.x=p[joint1][0];
+     p1world.y=p[joint1][1];
+     p1world.z=p[joint1][2];
+     p2world.x=p[joint2][0];
+     p2world.y=p[joint2][1];
+     p2world.z=p[joint2][2];
+     
+     if (joint1==0) {
+	 println("current=" + currentJointPositions[joint1][0]+"," +currentJointPositions[joint1][1]+","+currentJointPositions[joint1][2]);
+     }
+     kinect.convertRealWorldToProjective(p1world,p1proj);
+     kinect.convertRealWorldToProjective(p2world,p2proj);
+     if (joint1==0) {
+       println("p1world="+p1world+", p1proj="+p1proj);
+     }
+     line(p1proj.x,p1proj.y,p2proj.x,p2proj.y);
 }
 
 
@@ -292,19 +315,6 @@ void setReferenceJointPositions(int userId) {
     referenceJointsAreSet = true;
 }
 
-void OLDdrawLimb(int userId, int jointType1, int jointType2)
-{
-    PVector jointPos1 = new PVector();
-    PVector jointPos2 = new PVector();
-    float  confidence;
-
-    // draw the joint position
-    confidence = kinect.getJointPositionSkeleton(userId, jointType1, jointPos1);
-    confidence = kinect.getJointPositionSkeleton(userId, jointType2, jointPos2);
-
-    line(jointPos1.x, jointPos1.y, jointPos1.z, 
-	 jointPos2.x, jointPos2.y, jointPos2.z);
-}
 
 void keyPressed(){
     if (key == 's') {

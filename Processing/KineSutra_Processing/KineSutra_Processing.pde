@@ -10,6 +10,24 @@ int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
 Boolean referenceJointsAreSet = false;
 float referenceJointPositions[][] = new float[NUM_JOINTS][3];
 float movementVectors[][] = new float[NUM_JOINTS][3];
+Map<List<Character>, Character> buzzerMap;   // Mapping from joint moves to commands
+float threshold = 200;
+char SKEL_HEAD = 0, 
+    SKEL_NECK = 1, 
+    SKEL_LEFT_SHOULDER = 2, 
+    SKEL_LEFT_ELBOW = 3, 
+    SKEL_LEFT_HAND = 4, 
+    SKEL_RIGHT_SHOULDER = 5, 
+    SKEL_RIGHT_ELBOW = 6, 
+    SKEL_RIGHT_HAND = 7, 
+    SKEL_TORSO = 8, 
+    SKEL_LEFT_HIP = 9, 
+    SKEL_LEFT_FOOT = 10, 
+    SKEL_LEFT_KNEE = 11, 
+    SKEL_RIGHT_HIP = 12, 
+    SKEL_RIGHT_KNEE = 13, 
+    SKEL_RIGHT_FOOT = 14;
+int sample=0;
 
 void setup() {
     size(1024, 768);
@@ -21,21 +39,28 @@ void setup() {
     strokeWeight(5);
     logger=createWriter("poses.txt");
     int [] joints = new int[]{SimpleOpenNI.SKEL_HEAD, 
-		SimpleOpenNI.SKEL_NECK, 
-		SimpleOpenNI.SKEL_LEFT_SHOULDER,
-		SimpleOpenNI.SKEL_LEFT_ELBOW,
-		SimpleOpenNI.SKEL_LEFT_HAND,
-		SimpleOpenNI.SKEL_RIGHT_SHOULDER,
-		SimpleOpenNI.SKEL_RIGHT_ELBOW,
-		SimpleOpenNI.SKEL_RIGHT_HAND,
-		SimpleOpenNI.SKEL_TORSO,
-		SimpleOpenNI.SKEL_LEFT_HIP,
-		SimpleOpenNI.SKEL_LEFT_KNEE,
-		SimpleOpenNI.SKEL_LEFT_FOOT,
-		SimpleOpenNI.SKEL_RIGHT_HIP,
-		SimpleOpenNI.SKEL_RIGHT_KNEE,
-		SimpleOpenNI.SKEL_RIGHT_FOOT};
+			      SimpleOpenNI.SKEL_NECK, 
+			      SimpleOpenNI.SKEL_LEFT_SHOULDER,
+			      SimpleOpenNI.SKEL_LEFT_ELBOW,
+			      SimpleOpenNI.SKEL_LEFT_HAND,
+			      SimpleOpenNI.SKEL_RIGHT_SHOULDER,
+			      SimpleOpenNI.SKEL_RIGHT_ELBOW,
+			      SimpleOpenNI.SKEL_RIGHT_HAND,
+			      SimpleOpenNI.SKEL_TORSO,
+			      SimpleOpenNI.SKEL_LEFT_HIP,
+			      SimpleOpenNI.SKEL_LEFT_KNEE,
+			      SimpleOpenNI.SKEL_LEFT_FOOT,
+			      SimpleOpenNI.SKEL_RIGHT_HIP,
+			      SimpleOpenNI.SKEL_RIGHT_KNEE,
+			      SimpleOpenNI.SKEL_RIGHT_FOOT};
     jointIDs=joints;
+
+    // Buzz mappings (joint, coordinate, direction) => Buzzer code
+    buzzerMap = new HashMap<List<Character>,Character>();
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'b');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '+'), 'c');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '-'), 'd');
 }
 
 int liveX=0, liveY=0;
@@ -127,14 +152,17 @@ void processSkeletonFromCurrentFrame(int userId) {
 	    }
 	    float llen=sqrt(s2);
 	    float refllen=sqrt(s2ref);
+	    if (joint==1)
+		println("llen="+llen+",reflen="+refllen);
 	    for (int k=0;k<3;k++) 
 		movementVectors[joint][k] = relative[k] - refrelative[k]*llen/refllen;
-	    log(joint + "," + currentJointPositions[joint][0]+","+ currentJointPositions[joint][1]+","+ currentJointPositions[joint][2]+","
-		+ referenceJointPositions[joint][0]+","+ referenceJointPositions[joint][1]+","+ referenceJointPositions[joint][2]+","
-		+ movementVectors[joint][0]+","+ movementVectors[joint][1]+","+ movementVectors[joint][2]);
 	}
-	logger.flush();
+	log(sample+","+joint + "," + currentJointPositions[joint][0]+","+ currentJointPositions[joint][1]+","+ currentJointPositions[joint][2]+","
+	    + referenceJointPositions[joint][0]+","+ referenceJointPositions[joint][1]+","+ referenceJointPositions[joint][2]+","
+	    + movementVectors[joint][0]+","+ movementVectors[joint][1]+","+ movementVectors[joint][2]);
     }            
+    logger.flush();
+    sample=sample+1;
 }
 
 Boolean shouldSendCurrentMovementVectors() {
@@ -151,9 +179,6 @@ void sendCurrentMovementVectors() {
 		directMoves(joint,movementVectors[joint][0],movementVectors[joint][1],movementVectors[joint][2]);
 }
 
-void directMoves(int joint, float mx, float my, float mz) {
-    println("Move joint "+ joint + "  x: " + mx + "  y: " + my + "  z: " + mz);
-}
 
 void setReferenceJointPositions(int userId) {
 
@@ -208,7 +233,7 @@ void keyPressed(){
 
 // user-tracking callbacks!
 void onNewUser(int userId) {
-    println("start pose detection");
+    println("New user: start pose detection");
     kinect.startPoseDetection("Psi", userId);
 }
 
@@ -230,5 +255,24 @@ void onStartPose(String pose, int userId) {
 }
 
 
+/**
+ * Directs a joint move to a buzzer.
+ *
+ * Args:
+ *   joint - Joint number
+ *   mx    - Movement on the x-axis
+ *   my    - Movement on the y-axis
+ *   mz    - Movement on the z-axis
+ */
+void directMoves(int joint, float mx, float my, float mz) {
+    println("Move joint "+ joint + "  x: " + mx + "  y: " + my + "  z: " + mz);
+    directMove(joint, 'x', mx);
+    directMove(joint, 'y', my);
+    directMove(joint, 'z', mz);
+}
 
-
+void directMove(int joint, int coordinate, float value) {
+    // Above the threshold limit. Something's gonna buzz!
+    int direction = (value > 0.0) ? '+' : '-';
+    //    println(buzzerMap.get(Arrays.asList(joint, coordinate, direction)));
+}

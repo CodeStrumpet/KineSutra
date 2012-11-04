@@ -185,3 +185,10 @@ void onStartPose(String pose, int userId) {
   kinect.requestCalibrationSkeleton(userId, true);
 }
 
+/*
+RealMatrix coefficients =
+    new Array2DRowRealMatrix(new double[][] { { 2, 3, -2 }, { -1, 7, 6 }, { 4, -3, -5 } },
+                       false);
+DecompositionSolver solver = new LUDecompositionImpl(coefficients).getSolver();
+*/
+

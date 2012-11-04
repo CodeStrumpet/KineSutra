@@ -7,6 +7,7 @@
 // Islam El-Ashi
 
 import SimpleOpenNI.*;
+import controlP5.*;
 
 // This code need serious refactoring to make it less spaghetti
 // Should have separate class for all the joint position arrays
@@ -26,11 +27,19 @@ PVector referenceJointPositions[] = new PVector[NUM_JOINTS];
 PVector movementVectors[] = new PVector[NUM_JOINTS];
 PVector targetVectors[] = new PVector[NUM_JOINTS];
 
+class Pose {
+    PVector[] positions;
+    PImage depthImage;
+    PImage rgbImage;
+
+    void Set(PVector[] p) { for (int j=0;j<NUM_JOINTS;j++) positions[j]=p[j]; }
+};
+
 // Which joint is upstream of this joint (or -1 if none)
 int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
 
 Map<List<Character>, Character> buzzerMap;   // Mapping from joint moves to buzzer commands
-float threshold = 200;  // Threshold for requiring movement (mm)
+int threshold = 200;  // Threshold for requiring movement (mm)
 
 // Joint indexes (different from SimpleOpenNI numbering)
 char SKEL_HEAD = 0, 
@@ -57,6 +66,7 @@ float lastHapticUpdate;	   // Elapsed time since start of last haptic update
 int updatingJoint=-1;	   // Which joint is currently being updated
 PImage refImgDepth,refImgRGB;
 Boolean useDepth;
+ControlP5 cp5;
 
 void setup() {
     frameRate(30);
@@ -66,6 +76,8 @@ void setup() {
     kinect.enableRGB();
     kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
     kinect.setMirror(true);
+    cp5=new ControlP5(this);
+    cp5.addSlider("threshold").setPosition(20,500).setSize(40,200).setRange(10,500).setValue(200);
 
     logger=createWriter("poses"+year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+".txt");
     
@@ -230,6 +242,10 @@ void drawLimb(PVector p[],int joint1, int joint2) {
      kinect.convertRealWorldToProjective(p1world,p1proj);
      kinect.convertRealWorldToProjective(p2world,p2proj);
      line(p1proj.x,p1proj.y,p2proj.x,p2proj.y);
+     if (updatingJoint != -1 && joint1==updatingJoint)
+	 ellipse(p1proj.x,p1proj.y,20,20);
+     else if (updatingJoint != -1 && joint2==updatingJoint)
+	 ellipse(p2proj.x,p2proj.y,20,20);
 }
 
 

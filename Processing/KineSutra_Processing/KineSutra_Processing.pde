@@ -15,6 +15,7 @@ import controlP5.*;
 
 SimpleOpenNI  kinect;
 PrintWriter logger;
+Serial port;
 
 int NUM_JOINTS = 15;
 
@@ -69,6 +70,8 @@ Boolean useDepth;
 ControlP5 cp5;
 
 void setup() {
+    port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
+    
     frameRate(30);
     size(1024, 768);
     kinect = new SimpleOpenNI(this);
@@ -102,11 +105,64 @@ void setup() {
     jointIDs=joints;
 
     // Buzz mappings (joint, coordinate, direction) => Buzzer code
-    buzzerMap = new HashMap<List<Character>,Character>();
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'b');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '+'), 'c');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '-'), 'd');
+    buzzerMap = new HashMap<List<Character>, Character>();
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '-'), 'a');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'B');
 
     // Start time reference
     sday=day();
@@ -410,9 +466,11 @@ void buzzMoves(int joint, float mx, float my, float mz) {
 }
 
 void buzzMove(int joint, int coordinate, float value) {
-    // Above the threshold limit. Something's gonna buzz!
+    // Something's gonna buzz!
     int direction = (value > 0.0) ? '+' : '-';
-    Character buzzcode=buzzerMap.get(Arrays.asList(joint, coordinate, direction));
-    if (buzzcode != null)
-	 println("Buzz: "+buzzcode);
+    Character buzzer = buzzerMap.get(Arrays.asList(joint, coordinate, direction));
+    if (buzzer != null) {
+      println(buzzer);
+      port.write(buzzer);
+    }
 }

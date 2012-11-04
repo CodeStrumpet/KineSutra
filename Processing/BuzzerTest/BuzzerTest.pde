@@ -28,10 +28,63 @@ void setup() {
   
   // Buzz mappings (joint, coordinate, direction) => Buzzer code
   buzzerMap = new HashMap<List<Character>, Character>();
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '+'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '-'), 'a');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'B');
+  
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'B');
+  
   buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
   buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'b');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'B');
 }
 
 void draw() {
@@ -61,7 +114,10 @@ void directMove(char joint, char coordinate, int value) {
  if (abs(value) >= THRESHOLD) {
     // Above the threshold limit. Something's gonna buzz!
     char direction = (value >= THRESHOLD) ? '+' : '-';
-    println(buzzerMap.get(Arrays.asList(joint, coordinate, direction)));
-    port.write(buzzerMap.get(Arrays.asList(joint, coordinate, direction)));
+    Character buzzer = buzzerMap.get(Arrays.asList(joint, coordinate, direction));
+    if (buzzer != null) {
+      println(buzzer);
+      port.write(buzzer);
+    }
   } 
 }

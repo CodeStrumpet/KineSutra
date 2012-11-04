@@ -55,15 +55,15 @@ int sday,shour,smin,ssec,smillis;   // Start time of program
 float hapticUpdateInterval = 1.0;   // Update haptics at this interval in seconds
 float lastHapticUpdate;	   // Elapsed time since start of last haptic update
 int updatingJoint=-1;	   // Which joint is currently being updated
-
-// UI layout
-int uiImagePosX=0, uiImagePosY=0;    // Position of live image on screen
+PImage refImgDepth,refImgRGB;
+Boolean useDepth;
 
 void setup() {
     frameRate(30);
     size(1024, 768);
     kinect = new SimpleOpenNI(this);
     kinect.enableDepth();
+    kinect.enableRGB();
     kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
     kinect.setMirror(true);
 
@@ -102,6 +102,8 @@ void setup() {
     smin=minute();
     ssec=second();
     smillis=millis();
+
+    useDepth=true;
 }
 
 // Elapsed time in seconds since startup
@@ -116,7 +118,10 @@ int currentUser;
 void draw() {
     background(0);
     kinect.update();
-    image(kinect.depthImage(), uiImagePosX,uiImagePosY);
+    if (useDepth)
+	image(kinect.depthImage(), 0,0);
+    else
+	image(kinect.rgbImage(), 0,0);
     
      currentUser = -1;
     
@@ -128,7 +133,20 @@ void draw() {
             currentUser = userId;
         }
     }
-    
+
+    if (referenceJointsAreSet) {
+	pushMatrix();
+	if (useDepth)
+	    image(refImgDepth,640,0,320,240);
+	else
+	    image(refImgRGB,640,0,320,240);
+	translate(640,240);
+	scale(0.5);
+	stroke(0,255,0);
+	strokeWeight(2);
+	drawLimbs(referenceJointPositions);
+	popMatrix();
+    }
     // draw the skeleton in whatever color we chose
     if (currentUser > 0) {
         if (shouldSendCurrentMovementVectors()) {
@@ -136,7 +154,7 @@ void draw() {
             sendCurrentMovementVectors();
         }
         pushMatrix();
-	translate(uiImagePosX,uiImagePosY);
+	translate(0,0);
 	drawSkeleton();        
 	popMatrix();
     } else {
@@ -191,14 +209,8 @@ void drawLimb(float p[][],int joint1, int joint2) {
      p2world.y=p[joint2][1];
      p2world.z=p[joint2][2];
      
-     if (joint1==0) {
-	 println("current=" + currentJointPositions[joint1][0]+"," +currentJointPositions[joint1][1]+","+currentJointPositions[joint1][2]);
-     }
      kinect.convertRealWorldToProjective(p1world,p1proj);
      kinect.convertRealWorldToProjective(p2world,p2proj);
-     if (joint1==0) {
-       println("p1world="+p1world+", p1proj="+p1proj);
-     }
      line(p1proj.x,p1proj.y,p2proj.x,p2proj.y);
 }
 
@@ -322,16 +334,22 @@ void keyPressed(){
     }
 
     if (key == 'r') {
-	println("Acquiring reference");
 	IntVector userList = new IntVector();
 	kinect.getUsers(userList);
-	saveFrame("reference.png");      
-	if (userList.size() > 0) {
-	    if (kinect.isTrackingSkeleton(userList.get(0))) {
-		setReferenceJointPositions(userList.get(0));              
-	    } else {
-		println("Not tracking user 0");
-	    }
+	if (userList.size() > 0 &&  kinect.isTrackingSkeleton(userList.get(0))) {
+	    println("Acquiring reference");
+	    setReferenceJointPositions(userList.get(0));              
+	    refImgDepth=createImage(640,480,ALPHA);
+	    refImgDepth.loadPixels();
+	    refImgDepth.pixels=kinect.depthImage().pixels;
+	    refImgDepth.updatePixels();
+	    refImgRGB=createImage(640,480,RGB);
+	    refImgRGB.loadPixels();
+	    refImgRGB.pixels=kinect.rgbImage().pixels;
+	    refImgRGB.updatePixels();
+	    println("Reference acquired");
+	} else {
+	    println("Not tracking user - no reference acquired");
 	}      
     }
 }

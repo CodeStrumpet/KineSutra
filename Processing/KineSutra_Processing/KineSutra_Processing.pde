@@ -13,8 +13,10 @@ int NUM_JOINTS = 17;
 
 int [] jointIDs;
 
-float referenceJointPositions[][] = new float[NUM_JOINTS][3];
 Boolean referenceJointsAreSet = false;
+float referenceJointPositions[][] = new float[NUM_JOINTS][3];
+
+float movementVectors[][] = new float[NUM_JOINTS][3];
 
 void setup() {
 
@@ -95,7 +97,14 @@ void draw() {
     // draw the skeleton in whatever color we chose
     if (currentUser > 0) {
         processSkeletonFromCurrentFrame(currentUser);
+        
+        if (shouldSendCurrentMovementVectors()) {
+            sendCurrentMovementVectors();
+        }
+        
        drawSkeleton(currentUser);        
+    } else {
+        text("Set reference pose by pressing 'l'", 40, height - 100);
     }
 }
 
@@ -129,13 +138,29 @@ void processSkeletonFromCurrentFrame(int userId) {
         PVector jointVector = new PVector();
 
         kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
-
+        
         currentJointPositions[joint][0] = jointVector.x;
         currentJointPositions[joint][1] = jointVector.y;
-        currentJointPositions[joint][2] = jointVector.z;  
+        currentJointPositions[joint][2] = jointVector.z;
+        
+        // swap this out for function that calculates translated vectors
+        movementVectors[joint][0] = referenceJointPositions[joint][0] - currentJointPositions[joint][0];
+        movementVectors[joint][1] = referenceJointPositions[joint][1] - currentJointPositions[joint][1];
+        movementVectors[joint][2] = referenceJointPositions[joint][2] - currentJointPositions[joint][2];
 
-        //println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
+        //println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);        
     }            
+}
+
+
+bool shouldSendCurrentMovementVectors() {
+    
+    // replace with logic that determines whether our movement vectors are over a threshold and thus we should send them
+    return true;
+}
+
+void sendCurrentMovementVectors() {
+    
 }
 
 

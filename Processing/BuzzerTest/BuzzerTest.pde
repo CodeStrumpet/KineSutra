@@ -24,14 +24,14 @@ Character SKEL_HEAD = 0,
 Map<List<Character>, Character> buzzerMap;
     
 void setup() {
-  port = new Serial(this,"/dev/tty.FireFly-5F27-SPP", 115200);
+  port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
   
   // Buzz mappings (joint, coordinate, direction) => Buzzer code
   buzzerMap = new HashMap<List<Character>, Character>();
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'a');
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'b');
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '+'), 'c');
-  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'z', '-'), 'd');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'a');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
+  buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'b');
 }
 
 void draw() {
@@ -39,8 +39,7 @@ void draw() {
 
 void keyPressed() {
   // Write the buzzer's corresponding letter here.
- // port.write('B');
-  directMoves(SKEL_RIGHT_FOOT, -1, 0, 1);
+  directMoves(SKEL_RIGHT_FOOT, 1, 1, 0);
 }
 
 /**
@@ -61,10 +60,8 @@ void directMoves(char joint, int mx, int my, int mz) {
 void directMove(char joint, char coordinate, int value) {
  if (abs(value) >= THRESHOLD) {
     // Above the threshold limit. Something's gonna buzz!
-    char direction = (value > THRESHOLD) ? '+' : '-';
+    char direction = (value >= THRESHOLD) ? '+' : '-';
     println(buzzerMap.get(Arrays.asList(joint, coordinate, direction)));
+    port.write(buzzerMap.get(Arrays.asList(joint, coordinate, direction)));
   } 
 }
-
-
-

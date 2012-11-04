@@ -32,7 +32,8 @@ char[][] buzzerMap = {
 };
 
 void setup() {
-  port = new Serial(this, Serial.list()[0], 115200);
+ port = new Serial(this,"/dev/tty.FireFly-5F27-SPP", 115200);
+
 }
 
 void draw() {
@@ -40,6 +41,7 @@ void draw() {
 
 void keyPressed() {
   // Write the buzzer's corresponding letter here.
-  port.write('A');
+  port.write('B');
+  println('B');
 }
 

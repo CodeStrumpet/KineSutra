@@ -186,9 +186,8 @@ void log(String s) {
 
 // Process current skeleton position to determine movements needed
 void processSkeletonFromCurrentFrame(int userId) {
-
+    // Load current joints from Kinect
     for (int joint = 0; joint < jointIDs.length; joint++) {
-
         PVector jointVector = new PVector();
 
         kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
@@ -196,7 +195,10 @@ void processSkeletonFromCurrentFrame(int userId) {
         currentJointPositions[joint][0] = jointVector.x;
         currentJointPositions[joint][1] = jointVector.y;
         currentJointPositions[joint][2] = jointVector.z;
-        
+    }
+
+    // Process joints
+    for (int joint = 0; joint < jointIDs.length; joint++) {
 	if (priorJoint[joint]==-1)
 	    // This joint is not relative to any other joints, set movement to 0
 	    for (int k=0;k<3;k++)

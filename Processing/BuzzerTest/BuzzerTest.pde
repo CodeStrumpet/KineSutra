@@ -22,10 +22,20 @@ Character SKEL_HEAD = 0,
     SKEL_RIGHT_FOOT = 14;
     
 Map<List<Character>, Character> buzzerMap;
-    
+    		     
+Boolean bluetooth=false;
+
 void setup() {
-  port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
-  
+     if (bluetooth)
+       port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
+      else {
+	// List all the available serial ports:
+	println(Serial.list());
+
+	// Open the port you are using at the rate you want:
+	port = new Serial(this, Serial.list()[12], 115200);
+    }
+
   // Buzz mappings (joint, coordinate, direction) => Buzzer code
   buzzerMap = new HashMap<List<Character>, Character>();
   
@@ -92,7 +102,9 @@ void draw() {
 
 void keyPressed() {
   // Write the buzzer's corresponding letter here.
-  directMoves(SKEL_RIGHT_FOOT, 1, 1, 0);
+  //directMoves(SKEL_RIGHT_FOOT, 1, 1, 0);
+port.write(key);
+println("Sent "+key);
 }
 
 /**

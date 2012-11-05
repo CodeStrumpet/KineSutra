@@ -422,20 +422,20 @@ void setBuzzerMappings() {
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'G');
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'H');
     
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'R');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'Q');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'R');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'Q');
     
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'H');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'G');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'H');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'G');
     
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'I');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'J');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'I');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'J');
     
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
@@ -448,20 +448,20 @@ void setBuzzerMappings() {
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
     
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'O');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'P');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'O');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'P');
     
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'M');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'K');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'M');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'K');
     
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'T');
     
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
     buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
@@ -491,7 +491,6 @@ void buzzMove(int ijoint, char coordinate, float value) {
     char direction = (value > 0.0) ? '+' : '-';
     Character buzzer = buzzerMap.get(Arrays.asList(joint, coordinate, direction));
     println("joint="+joint+", coordinate="+coordinate+",direction="+direction+",buzzer="+buzzer);
-    buzzer='A';
     if (buzzer != null) {
       println("BUZZ: "+buzzer);
       if (bluetooth || serial)

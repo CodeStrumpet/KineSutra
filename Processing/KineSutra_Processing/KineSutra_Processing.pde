@@ -8,6 +8,7 @@
 
 import SimpleOpenNI.*;
 import controlP5.*;
+import processing.serial.*;
 
 // This code need serious refactoring to make it less spaghetti
 // Should have separate class for all the joint position arrays

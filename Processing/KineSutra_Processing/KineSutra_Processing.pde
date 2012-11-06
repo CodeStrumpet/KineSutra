@@ -22,6 +22,8 @@ int NUM_JOINTS = 15;
 
 int [] jointIDs;
 Boolean referenceJointsAreSet = false;  // Once we've acquired a reference
+Boolean bluetooth = false;
+Boolean serial=true;
 
 // Various vectors of joint positions
 PVector currentJointPositions[] = new PVector[NUM_JOINTS];
@@ -71,8 +73,15 @@ boolean useDepth=false;
 ControlP5 cp5;
 
 void setup() {
-    port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
-    
+    if (bluetooth)
+	port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
+    else if (serial) {
+	// List all the available serial ports:
+	println(Serial.list());
+
+	// Open the port you are using at the rate you want:
+	port = new Serial(this, Serial.list()[12], 115200);
+    }
     frameRate(30);
     size(1024, 768);
     kinect = new SimpleOpenNI(this);
@@ -84,7 +93,7 @@ void setup() {
     cp5.addSlider("threshold").setPosition(20,500).setSize(40,200).setRange(10,500).setValue(200);
     cp5.addToggle("useDepth").setPosition(100,680).setSize(50,20) ;
     logger=createWriter("poses"+year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+".txt");
-    
+
     // Would've been nice to initialize this above, but causes link errors to reference these before calling the SimpleOpenNI constructor or other methods
     // Initialize a temporary
     int [] joints = new int[]{SimpleOpenNI.SKEL_HEAD, 
@@ -105,65 +114,7 @@ void setup() {
     // Copy into global
     jointIDs=joints;
 
-    // Buzz mappings (joint, coordinate, direction) => Buzzer code
-    buzzerMap = new HashMap<List<Character>, Character>();
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '+'), 'a');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '-'), 'a');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'B');
-    
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
-    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'B');
+    setBuzzerMappings();
 
     // Start time reference
     sday=day();
@@ -179,6 +130,8 @@ void setup() {
 	movementVectors[joint]=new PVector();
 	targetVectors[joint]=new PVector();
     }
+    if (bluetooth)
+	BuzzAll();
 }
 
 // Elapsed time in seconds since startup
@@ -243,8 +196,14 @@ void draw() {
 	translate(0,0);
 	drawSkeleton();        
 	popMatrix();
-    } else {
-        text("Set reference pose by pressing 'r'", 40, height - 40);
+    } 
+    
+    text("Set reference pose by pressing 'r'", 40, height - 40);
+
+    if (updatingJoint == -1 && referenceJointsAreSet)  {
+	text("ON TARGET",200,620);
+	fill(0,255,0);
+	ellipse(512,600,100,100);
     }
 }
 
@@ -448,6 +407,67 @@ void onStartPose(String pose, int userId) {
     kinect.requestCalibrationSkeleton(userId, true);
 }
 
+void setBuzzerMappings() {
+    // Buzz mappings (joint, coordinate, direction) => Buzzer code
+    buzzerMap = new HashMap<List<Character>, Character>();
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '+'), 'C');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '-'), 'D');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '+'), 'E');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '-'), 'F');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'G');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'H');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'R');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'Q');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'R');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'Q');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'H');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'G');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'H');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'G');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'I');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'J');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'I');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'J');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '+'), 'a');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '-'), 'a');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'O');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'P');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'O');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'P');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'M');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'K');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'M');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'K');
+    
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'T');
+    buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'T');
+    
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
+    buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'B');
+}
 
 /**
  * Directs a joint move to a buzzer.
@@ -465,12 +485,21 @@ void buzzMoves(int joint, float mx, float my, float mz) {
     buzzMove(joint, 'z', mz);
 }
 
-void buzzMove(int joint, int coordinate, float value) {
+void buzzMove(int ijoint, char coordinate, float value) {
+    char joint=(char)ijoint;
     // Something's gonna buzz!
-    int direction = (value > 0.0) ? '+' : '-';
+    char direction = (value > 0.0) ? '+' : '-';
     Character buzzer = buzzerMap.get(Arrays.asList(joint, coordinate, direction));
+    println("joint="+joint+", coordinate="+coordinate+",direction="+direction+",buzzer="+buzzer);
     if (buzzer != null) {
-      println(buzzer);
-      port.write(buzzer);
+      println("BUZZ: "+buzzer);
+      if (bluetooth || serial)
+	  port.write(buzzer);
     }
+}
+
+void BuzzAll() {
+    char c;
+    for (c='A';c<'E';c++)
+	port.write(c);
 }

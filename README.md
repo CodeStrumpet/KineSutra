@@ -13,11 +13,25 @@ Technology
 * Serial communication to Arduino via usb or bluetooth
 * 20 vibration motors
 
-Image showing the construction of the haptic suit
+The haptic suit
 -----------------------------------------------
-![Making the suit](http://kinesutra.files.wordpress.com/2012/11/photo-21.jpg?w=764&h=1024 "Making the suit")
+![Making the suit](https://raw.github.com/CodeStrumpet/KineSutra/master/Images/README_images/kinesutra_making_suit.jpeg "Making the suit")
+
+Here the UI is telling the dancer to correct the position of their left elbow
+---------------------------------------------------
+![Left elbow correct](https://raw.github.com/CodeStrumpet/KineSutra/master/Images/README_images/kinesutra_elbow_correct.png "Correct left elbow")
+
+Left knee idendified as out of position
+---------------------------------------------------
+![Left knee correct](https://raw.github.com/CodeStrumpet/KineSutra/master/Images/README_images/kinesutra_knee_correct.png "Correct left knee")
 
 
 
 Steps to get the code running
 ------------------------------
+* Download the *SimpleOpenNI & ControlP5* processing libraries and place them in the 'libraries' directory in your sketchbook folder
+* Restart the Processing environment to make sure the libraries will be recognized
+* Plug in a Kinect or Asus Xtion sensor
+* Capture a reference pose using the 'r' key on the keyboard
+* Have your dancer don the haptic suit
+* Get buzzed!

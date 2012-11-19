@@ -43,7 +43,7 @@ public class Kinesutra extends PApplet {
 	int [] jointIDs;
 	Boolean referenceJointsAreSet = false;  // Once we've acquired a reference
 	Boolean bluetooth = false;
-	Boolean serial=true;
+	Boolean serial=false;
 
 	// Various vectors of joint positions
 	PVector currentJointPositions[] = new PVector[NUM_JOINTS];

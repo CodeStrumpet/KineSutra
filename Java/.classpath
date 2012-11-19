@@ -12,7 +12,7 @@
 	<classpathentry kind="lib" path="lib/serial.jar"/>
 	<classpathentry kind="lib" path="lib/SimpleOpenNI.jar">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Volumes/Adams/Users/bst/Dropbox/Processing/libraries/SimpleOpenNI/library"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Users/bst/Dropbox/Processing/libraries/SimpleOpenNI/library"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>

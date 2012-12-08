@@ -41,40 +41,15 @@ public class Kinesutra extends PApplet {
 	int NUM_JOINTS = 15;
 
 	int [] jointIDs;
-	Boolean referenceJointsAreSet = false;  // Once we've acquired a reference
 	Boolean bluetooth = false;
 	Boolean serial=false;
 
-	// Various vectors of joint positions
-	PVector currentJointPositions[] = new PVector[NUM_JOINTS];
-	PVector movementVectors[] = new PVector[NUM_JOINTS];
-	PVector targetVectors[] = new PVector[NUM_JOINTS];
 	
+	Pose currPose = null;
 	Pose refPose = null;
-
-	// Which joint is upstream of this joint (or -1 if none)
-	int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
 
 	Map<List<Character>, Character> buzzerMap;   // Mapping from joint moves to buzzer commands
 	int threshold = 200;  // Threshold for requiring movement (mm)
-
-	// Joint indexes (different from SimpleOpenNI numbering)
-	char SKEL_HEAD = 0, 
-			SKEL_NECK = 1, 
-			SKEL_LEFT_SHOULDER = 2, 
-			SKEL_LEFT_ELBOW = 3, 
-			SKEL_LEFT_HAND = 4, 
-			SKEL_RIGHT_SHOULDER = 5, 
-			SKEL_RIGHT_ELBOW = 6, 
-			SKEL_RIGHT_HAND = 7, 
-			SKEL_TORSO = 8, 
-			SKEL_LEFT_HIP = 9, 
-			SKEL_LEFT_FOOT = 10, 
-			SKEL_LEFT_KNEE = 11, 
-			SKEL_RIGHT_HIP = 12, 
-			SKEL_RIGHT_KNEE = 13, 
-			SKEL_RIGHT_FOOT = 14;
-	String jointNames[]={"Head","Neck","Left Shoulder","Left Elbow","Left Hand","Right Shoulder","Right Elbow","Right Hand","Torso","Left Hip","Left Foot","Left Knee","Right Hip","Right Knee","Right Foot"};
 
 	int sample=0;   // Current sample number (primarily for logging)
 	int sday,shour,smin,ssec,smillis;   // Start time of program
@@ -138,13 +113,6 @@ public class Kinesutra extends PApplet {
 		smin=minute();
 		ssec=second();
 		smillis=millis();
-
-
-		for (int joint=0;joint<NUM_JOINTS;joint++) {
-			currentJointPositions[joint]=new PVector();
-			movementVectors[joint]=new PVector();
-			targetVectors[joint]=new PVector();
-		}
 		
 	}
 
@@ -196,16 +164,19 @@ public class Kinesutra extends PApplet {
 		}
 		// draw the skeleton in whatever color we chose
 		if (currentUser > 0) {
+			if (currPose == null) {
+				currPose = new Pose(this);
+			}
+			
 			// Load current joints from Kinect
+			PVector[] jointVectors = new PVector[jointIDs.length];
 			for (int joint = 0; joint < jointIDs.length; joint++) {
 				PVector jointVector = new PVector();
 
 				kinect.getJointPositionSkeleton(currentUser, jointIDs[joint], jointVector);
-
-				currentJointPositions[joint].x = jointVector.x;
-				currentJointPositions[joint].y = jointVector.y;
-				currentJointPositions[joint].z = jointVector.z;
+				jointVectors[joint] = jointVector;
 			}
+			currPose.setPositions(jointVectors);
 
 			if (shouldSendCurrentMovementVectors()) {
 				processSkeletonFromCurrentFrame(currentUser);
@@ -219,7 +190,7 @@ public class Kinesutra extends PApplet {
 
 		text("Set reference pose by pressing 'r'", 40, height - 40);
 
-		if (updatingJoint == -1 && referenceJointsAreSet)  {
+		if (updatingJoint == -1 && refPose != null)  {
 			text("ON TARGET",200,620);
 			fill(0,255,0);
 			ellipse(512,600,100,100);
@@ -235,31 +206,31 @@ public class Kinesutra extends PApplet {
 		kinect.drawLimb(currentUser, SimpleOpenNIConstants.SKEL_HEAD, SimpleOpenNIConstants.SKEL_NECK);
 
 		stroke(255,0,0);
-		drawLimbs(currentJointPositions);
-		if (referenceJointsAreSet) {
+		drawLimbs(currPose.getPositions());
+		if (refPose != null) {
 			stroke(0,255,0);
-			drawLimbs(targetVectors);
+			drawLimbs(currPose.targetVectors());
 		}
 	}
 
 	// Draw all limbs using joint points in p
 	void drawLimbs(PVector p[]) {
-		drawLimb(p,SKEL_HEAD, SKEL_NECK);
-		drawLimb(p,SKEL_NECK, SKEL_LEFT_SHOULDER);
-		drawLimb(p,SKEL_LEFT_SHOULDER, SKEL_LEFT_ELBOW);
-		drawLimb(p,SKEL_LEFT_ELBOW, SKEL_LEFT_HAND);
-		drawLimb(p,SKEL_NECK, SKEL_RIGHT_SHOULDER);
-		drawLimb(p,SKEL_RIGHT_SHOULDER, SKEL_RIGHT_ELBOW);
-		drawLimb(p,SKEL_RIGHT_ELBOW, SKEL_RIGHT_HAND);
-		drawLimb(p,SKEL_LEFT_SHOULDER, SKEL_TORSO);
-		drawLimb(p,SKEL_RIGHT_SHOULDER, SKEL_TORSO);
-		drawLimb(p,SKEL_TORSO, SKEL_LEFT_HIP);
-		drawLimb(p,SKEL_LEFT_HIP, SKEL_LEFT_KNEE);
-		drawLimb(p,SKEL_LEFT_KNEE, SKEL_LEFT_FOOT);
-		drawLimb(p,SKEL_TORSO, SKEL_RIGHT_HIP);
-		drawLimb(p,SKEL_RIGHT_HIP, SKEL_RIGHT_KNEE);
-		drawLimb(p,SKEL_RIGHT_KNEE, SKEL_RIGHT_FOOT);
-		drawLimb(p,SKEL_RIGHT_HIP, SKEL_LEFT_HIP);
+		drawLimb(p,Pose.SKEL_HEAD, Pose.SKEL_NECK);
+		drawLimb(p,Pose.SKEL_NECK, Pose.SKEL_LEFT_SHOULDER);
+		drawLimb(p,Pose.SKEL_LEFT_SHOULDER, Pose.SKEL_LEFT_ELBOW);
+		drawLimb(p,Pose.SKEL_LEFT_ELBOW, Pose.SKEL_LEFT_HAND);
+		drawLimb(p,Pose.SKEL_NECK, Pose.SKEL_RIGHT_SHOULDER);
+		drawLimb(p,Pose.SKEL_RIGHT_SHOULDER, Pose.SKEL_RIGHT_ELBOW);
+		drawLimb(p,Pose.SKEL_RIGHT_ELBOW, Pose.SKEL_RIGHT_HAND);
+		drawLimb(p,Pose.SKEL_LEFT_SHOULDER, Pose.SKEL_TORSO);
+		drawLimb(p,Pose.SKEL_RIGHT_SHOULDER, Pose.SKEL_TORSO);
+		drawLimb(p,Pose.SKEL_TORSO, Pose.SKEL_LEFT_HIP);
+		drawLimb(p,Pose.SKEL_LEFT_HIP, Pose.SKEL_LEFT_KNEE);
+		drawLimb(p,Pose.SKEL_LEFT_KNEE, Pose.SKEL_LEFT_FOOT);
+		drawLimb(p,Pose.SKEL_TORSO, Pose.SKEL_RIGHT_HIP);
+		drawLimb(p,Pose.SKEL_RIGHT_HIP, Pose.SKEL_RIGHT_KNEE);
+		drawLimb(p,Pose.SKEL_RIGHT_KNEE, Pose.SKEL_RIGHT_FOOT);
+		drawLimb(p,Pose.SKEL_RIGHT_HIP, Pose.SKEL_LEFT_HIP);
 	}
 
 	// Draw limb using joint points in p
@@ -289,45 +260,9 @@ public class Kinesutra extends PApplet {
 
 	// Process current skeleton position to determine movements needed
 	void processSkeletonFromCurrentFrame(int userId) {
-
-		// Process joints
-		for (int joint = 0; joint < jointIDs.length; joint++) {
-			if (priorJoint[joint]==-1)
-				// This joint is not relative to any other joints, set movement to 0
-				movementVectors[joint].set(0,0,0);
-			else {
-				// Relative joint
-				// Movement is amount to make this joint's position relative to its 'priorJoint' (the one it is relative to) equal to the same relationship in the reference
-				// Also, scale limb lengths in case the reference had different length limbs
-				PVector relative=new PVector();
-				PVector refrelative=new PVector();
-				relative = PVector.sub(currentJointPositions[joint],currentJointPositions[priorJoint[joint]]);
-				refrelative = PVector.sub(refPose.getPositions()[joint],refPose.getPositions()[priorJoint[joint]]);
-				float llen=relative.mag();
-				float refllen=refrelative.mag();
-
-				if (joint==1)
-					println("llen="+llen+",reflen="+refllen);  // Debugging - was seeing some bad lengths
-
-				float refscale=llen/refllen;   //  Amount to scale reference limb to match limb lengths;
-				// Sanity check -- otherwise can end up with some very bad movements
-				if (refscale<0.8 || refscale >1.3) {
-					println("Not scaling reference limb "+joint+","+priorJoint[joint]+" by out of range value " + refscale);
-					refscale=(float) 1.0;
-				}
-
-				movementVectors[joint] = PVector.sub(PVector.mult(refrelative,refscale),relative);
-			}
-
-			// Compute target positions from movement vectors
-			targetVectors[joint]=PVector.add(currentJointPositions[joint],movementVectors[joint]);
-
-			// Log to data file for post-analysis
-			log(sample+","+joint + "," + currentJointPositions[joint].x+","+ currentJointPositions[joint].y+","+ currentJointPositions[joint].z+","
-					+ refPose.getPositions()[joint].x+","+ refPose.getPositions()[joint].y+","+ refPose.getPositions()[joint].z+","
-					+ movementVectors[joint].x+","+ movementVectors[joint].y+","+ movementVectors[joint].z);
-		}            
-
+		
+		currPose.updateMovementVectors(refPose);
+		
 		logger.flush();
 		sample=sample+1;
 	}
@@ -335,7 +270,7 @@ public class Kinesutra extends PApplet {
 	// Decide if haptic updates should be sent yet
 	Boolean shouldSendCurrentMovementVectors() {
 		float now=elapsed();
-		if ((now<0 || (now-lastHapticUpdate) > hapticUpdateInterval) && referenceJointsAreSet) {
+		if ((now<0 || (now-lastHapticUpdate) > hapticUpdateInterval) && refPose != null) {
 			lastHapticUpdate=now;
 			return true;
 		}
@@ -346,6 +281,8 @@ public class Kinesutra extends PApplet {
 	 * Send current movement vectors to buzzers (one at a time)
 	 */
 	void sendCurrentMovementVectors() {
+		PVector[] movementVectors = currPose.getMovementVectors();
+		
 		if (updatingJoint==-1 || movementVectors[updatingJoint].mag()<threshold) {
 			// Decide which joint should be moving (starting at top and working down a limb at a time)
 			// Keep buzzing the same joint until it is within threshold, then go onto the next one that is wrong
@@ -358,7 +295,7 @@ public class Kinesutra extends PApplet {
 		}
 		if (updatingJoint!=-1) {
 			// Buzz the current joint
-			println("Move "+jointNames[updatingJoint]+" by "+movementVectors[updatingJoint].x+","+movementVectors[updatingJoint].y+","+movementVectors[updatingJoint].z);
+			println("Move "+Pose.JOINT_NAMES[updatingJoint]+" by "+movementVectors[updatingJoint].x+","+movementVectors[updatingJoint].y+","+movementVectors[updatingJoint].z);
 			buzzMoves(updatingJoint,movementVectors[updatingJoint].x,movementVectors[updatingJoint].y,movementVectors[updatingJoint].z);
 		}
 	}
@@ -368,7 +305,7 @@ public class Kinesutra extends PApplet {
 	 *
 	 * @param userId user ID of the user whose skeleton should be used
 	 */
-	void setReferenceJointPositions(int userId) {
+	void setReferencePosition(int userId) {
 		
 		PVector[] jointVectors = new PVector[jointIDs.length];
 		
@@ -382,11 +319,10 @@ public class Kinesutra extends PApplet {
 			println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
 		}
 		
-		if (refPose == null) {
-			refPose = new Pose(this);
-		}
+		refPose = new Pose(this); // always instantiate a new pose so we can keep a ref to the old one in our poseList 
 		refPose.setPositions(jointVectors);
-		referenceJointsAreSet = true;
+		refPose.setDepthImage(kinect.depthImage());
+		refPose.setRgbImage(kinect.rgbImage());
 	}
 
 
@@ -404,9 +340,7 @@ public class Kinesutra extends PApplet {
 			kinect.getUsers(userList);
 			if (userList.size() > 0 &&  kinect.isTrackingSkeleton(userList.get(0))) {
 				println("Acquiring reference");
-				setReferenceJointPositions(userList.get(0));
-				refPose.setDepthImage(kinect.depthImage());
-				refPose.setRgbImage(kinect.rgbImage());
+				setReferencePosition(userList.get(0));
 				println("Reference acquired");
 			} else {
 				println("Not tracking user - no reference acquired");
@@ -460,62 +394,62 @@ public class Kinesutra extends PApplet {
 		// Buzz mappings (joint, coordinate, direction) => Buzzer code
 		buzzerMap = new HashMap<List<Character>, Character>();
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_SHOULDER, 'x', '+'), 'A');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_SHOULDER, 'x', '-'), 'B');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '+'), 'C');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_SHOULDER, 'x', '-'), 'D');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_SHOULDER, 'x', '+'), 'C');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_SHOULDER, 'x', '-'), 'D');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '+'), 'E');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'x', '-'), 'F');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '+'), 'G');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HAND, 'y', '-'), 'H');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HAND, 'x', '+'), 'E');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HAND, 'x', '-'), 'F');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HAND, 'y', '+'), 'G');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HAND, 'y', '-'), 'H');
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '+'), 'R');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'x', '-'), 'Q');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '+'), 'R');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HAND, 'y', '-'), 'Q');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HAND, 'x', '+'), 'R');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HAND, 'x', '-'), 'Q');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HAND, 'y', '+'), 'R');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HAND, 'y', '-'), 'Q');
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '+'), 'H');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'x', '-'), 'G');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '+'), 'H');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_ELBOW, 'y', '-'), 'G');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_ELBOW, 'x', '+'), 'H');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_ELBOW, 'x', '-'), 'G');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_ELBOW, 'y', '+'), 'H');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_ELBOW, 'y', '-'), 'G');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'I');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'J');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'I');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'J');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'x', '+'), 'I');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'x', '-'), 'J');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'y', '+'), 'I');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'y', '-'), 'J');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'x', '+'), 'a');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'x', '-'), 'a');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'y', '+'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_ELBOW, 'y', '-'), 'B');
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '+'), 'a');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_HIP, 'x', '-'), 'a');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HIP, 'x', '+'), 'a');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_HIP, 'x', '-'), 'a');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '+'), 'B');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_HIP, 'x', '-'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HIP, 'x', '+'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_HIP, 'x', '-'), 'B');
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '+'), 'O');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'x', '-'), 'P');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '+'), 'O');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_KNEE, 'y', '-'), 'P');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_KNEE, 'x', '+'), 'O');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_KNEE, 'x', '-'), 'P');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_KNEE, 'y', '+'), 'O');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_KNEE, 'y', '-'), 'P');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '+'), 'M');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'x', '-'), 'K');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '+'), 'M');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_KNEE, 'y', '-'), 'K');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_KNEE, 'x', '+'), 'M');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_KNEE, 'x', '-'), 'K');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_KNEE, 'y', '+'), 'M');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_KNEE, 'y', '-'), 'K');
 
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '+'), 'T');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'x', '-'), 'T');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '+'), 'T');
-		buzzerMap.put(Arrays.asList(SKEL_LEFT_FOOT, 'y', '-'), 'T');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_FOOT, 'x', '+'), 'T');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_FOOT, 'x', '-'), 'T');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_FOOT, 'y', '+'), 'T');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_LEFT_FOOT, 'y', '-'), 'T');
 
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '+'), 'A');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'x', '-'), 'B');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '+'), 'B');
-		buzzerMap.put(Arrays.asList(SKEL_RIGHT_FOOT, 'y', '-'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_FOOT, 'x', '+'), 'A');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_FOOT, 'x', '-'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_FOOT, 'y', '+'), 'B');
+		buzzerMap.put(Arrays.asList(Pose.SKEL_RIGHT_FOOT, 'y', '-'), 'B');
 	}
 
 	/**

@@ -2,17 +2,23 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="lib" path="lib/controlP5.jar"/>
 	<classpathentry kind="lib" path="lib/core.jar"/>
-	<classpathentry kind="lib" path="lib/RXTXcomm.jar">
+	<classpathentry kind="lib" path="lib/gluegen-rt.jar">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Applications/Processing.app/Contents/Resources/Java/modes/java/libraries/serial/library/macosx"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="KineSutra/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/serial.jar"/>
-	<classpathentry kind="lib" path="lib/SimpleOpenNI.jar">
+	<classpathentry kind="lib" path="lib/jogl-all.jar">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Users/bst/Dropbox/Processing/libraries/SimpleOpenNI/library"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="KineSutra/lib"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/RXTXcomm.jar"/>
+	<classpathentry kind="lib" path="lib/serial.jar"/>
+	<classpathentry kind="lib" path="lib/controlP5.jar"/>
+	<classpathentry kind="lib" path="lib/SimpleOpenNI/SimpleOpenNI.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="KineSutra/lib/SimpleOpenNI"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>

@@ -35,3 +35,8 @@ Steps to get the code running
 * Capture a reference pose using the 'r' key on the keyboard
 * Have your dancer don the haptic suit
 * Get buzzed!
+
+
+Credits
+-------
+Check out the awesome book "Making Things See" by Greg Borenstein.  It's a great reference for the SimpleOpenNI library and we used some of the sample code located here (https://github.com/atduskgreg/Making-Things-See-Examples) to get started.

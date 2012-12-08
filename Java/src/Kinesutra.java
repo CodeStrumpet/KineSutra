@@ -26,13 +26,13 @@ import controlP5.ControlP5;
  * The Class Kinesutra.
  */
 public class Kinesutra extends PApplet {
-	// This code need serious refactoring to make it less spaghetti
-	// Should have separate class for all the joint position arrays
-	// Should use vector class underneath for math operations on the joint positions
 
-	/**
-	 * 
-	 */
+	// TODO:  
+	//	- move skeleton drawing into pose class
+	//	- add HapticConnection class that handles buzzer mappings and communication with MC
+	// 	- restore logger functionality?
+
+
 	private static final long serialVersionUID = 1L;
 	SimpleOpenNI  kinect;
 	PrintWriter logger;

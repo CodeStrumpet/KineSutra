@@ -5,9 +5,9 @@ import processing.core.PVector;
 
 public class Pose {
 	PApplet parent;
-	PVector[] positions;
-	PImage depthImage;
-	PImage rgbImage;
+	private PVector[] positions;
+	private PImage depthImage;
+	private PImage rgbImage;
 
 	public Pose(PApplet parent) {
 		this.parent = parent;
@@ -34,6 +34,10 @@ public class Pose {
 		this.depthImage.updatePixels();		
 	}	
 	
+	public PImage getDepthImage() {
+		return this.depthImage;
+	}
+	
 	public void setRgbImage(PImage newRgbImage) {
 		if (newRgbImage == null) {
 			return;
@@ -43,4 +47,8 @@ public class Pose {
 		parent.arrayCopy(newRgbImage.pixels, this.rgbImage.pixels);
 		this.rgbImage.updatePixels();		
 	}	
+	
+	public PImage getRgbImage() {
+		return this.rgbImage;
+	}
 }

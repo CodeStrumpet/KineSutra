@@ -47,9 +47,10 @@ public class Kinesutra extends PApplet {
 
 	// Various vectors of joint positions
 	PVector currentJointPositions[] = new PVector[NUM_JOINTS];
-	PVector referenceJointPositions[] = new PVector[NUM_JOINTS];
 	PVector movementVectors[] = new PVector[NUM_JOINTS];
 	PVector targetVectors[] = new PVector[NUM_JOINTS];
+	
+	Pose refPose = null;
 
 	// Which joint is upstream of this joint (or -1 if none)
 	int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
@@ -80,7 +81,6 @@ public class Kinesutra extends PApplet {
 	float hapticUpdateInterval = (float) 1.0;   // Update haptics at this interval in seconds
 	float lastHapticUpdate;	   // Elapsed time since start of last haptic update
 	int updatingJoint=-1;	   // Which joint is currently being updated
-	PImage refImgDepth,refImgRGB;
 	boolean useDepth=false;
 	ControlP5 cp5;
 
@@ -142,7 +142,6 @@ public class Kinesutra extends PApplet {
 
 		for (int joint=0;joint<NUM_JOINTS;joint++) {
 			currentJointPositions[joint]=new PVector();
-			referenceJointPositions[joint]=new PVector();
 			movementVectors[joint]=new PVector();
 			targetVectors[joint]=new PVector();
 		}
@@ -181,17 +180,18 @@ public class Kinesutra extends PApplet {
 			}
 		}
 
-		if (referenceJointsAreSet) {
+		if (refPose != null) {
 			pushMatrix();
 			if (useDepth)
-				image(refImgDepth,640,0,320,240);
+				image(refPose.getDepthImage(),640,0,320,240);
 			else
-				image(refImgRGB,640,0,320,240);
+				image(refPose.getRgbImage(),640,0,320,240);
+			
 			translate(640,240);
 			scale((float) 0.5);
 			stroke(0,255,0);
 			strokeWeight(2);
-			drawLimbs(referenceJointPositions);
+			drawLimbs(refPose.getPositions());
 			popMatrix();
 		}
 		// draw the skeleton in whatever color we chose
@@ -302,7 +302,7 @@ public class Kinesutra extends PApplet {
 				PVector relative=new PVector();
 				PVector refrelative=new PVector();
 				relative = PVector.sub(currentJointPositions[joint],currentJointPositions[priorJoint[joint]]);
-				refrelative = PVector.sub(referenceJointPositions[joint],referenceJointPositions[priorJoint[joint]]);
+				refrelative = PVector.sub(refPose.getPositions()[joint],refPose.getPositions()[priorJoint[joint]]);
 				float llen=relative.mag();
 				float refllen=refrelative.mag();
 
@@ -324,7 +324,7 @@ public class Kinesutra extends PApplet {
 
 			// Log to data file for post-analysis
 			log(sample+","+joint + "," + currentJointPositions[joint].x+","+ currentJointPositions[joint].y+","+ currentJointPositions[joint].z+","
-					+ referenceJointPositions[joint].x+","+ referenceJointPositions[joint].y+","+ referenceJointPositions[joint].z+","
+					+ refPose.getPositions()[joint].x+","+ refPose.getPositions()[joint].y+","+ refPose.getPositions()[joint].z+","
 					+ movementVectors[joint].x+","+ movementVectors[joint].y+","+ movementVectors[joint].z);
 		}            
 
@@ -369,16 +369,23 @@ public class Kinesutra extends PApplet {
 	 * @param userId user ID of the user whose skeleton should be used
 	 */
 	void setReferenceJointPositions(int userId) {
+		
+		PVector[] jointVectors = new PVector[jointIDs.length];
+		
 		for (int joint = 0; joint < jointIDs.length; joint++) {
 			PVector jointVector = new PVector();
 
 			kinect.getJointPositionSkeleton(userId, jointIDs[joint], jointVector);
-			referenceJointPositions[joint].x = jointVector.x;
-			referenceJointPositions[joint].y = jointVector.y;
-			referenceJointPositions[joint].z = jointVector.z;        
+			
+			jointVectors[joint] = jointVector;
 
 			println("Joint "+ joint + "  x: " + jointVector.x + "  y: " + jointVector.y + "  z: " + jointVector.z);
 		}
+		
+		if (refPose == null) {
+			refPose = new Pose(this);
+		}
+		refPose.setPositions(jointVectors);
 		referenceJointsAreSet = true;
 	}
 
@@ -397,15 +404,9 @@ public class Kinesutra extends PApplet {
 			kinect.getUsers(userList);
 			if (userList.size() > 0 &&  kinect.isTrackingSkeleton(userList.get(0))) {
 				println("Acquiring reference");
-				setReferenceJointPositions(userList.get(0));              
-				refImgDepth=createImage(640,480,ALPHA);
-				refImgDepth.loadPixels();
-				refImgDepth.pixels=kinect.depthImage().pixels;
-				refImgDepth.updatePixels();
-				refImgRGB=createImage(640,480,RGB);
-				refImgRGB.loadPixels();
-				refImgRGB.pixels=kinect.rgbImage().pixels;
-				refImgRGB.updatePixels();
+				setReferenceJointPositions(userList.get(0));
+				refPose.setDepthImage(kinect.depthImage());
+				refPose.setRgbImage(kinect.rgbImage());
 				println("Reference acquired");
 			} else {
 				println("Not tracking user - no reference acquired");

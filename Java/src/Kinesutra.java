@@ -51,14 +51,6 @@ public class Kinesutra extends PApplet {
 	PVector movementVectors[] = new PVector[NUM_JOINTS];
 	PVector targetVectors[] = new PVector[NUM_JOINTS];
 
-	class Pose {
-		PVector[] positions;
-		PImage depthImage;
-		PImage rgbImage;
-
-		void Set(PVector[] p) { for (int j=0;j<NUM_JOINTS;j++) positions[j]=p[j]; }
-	};
-
 	// Which joint is upstream of this joint (or -1 if none)
 	int[] priorJoint = {1,8,8,2,3,8,5,6,-1,8,9,10,8,12,13};
 
@@ -154,8 +146,7 @@ public class Kinesutra extends PApplet {
 			movementVectors[joint]=new PVector();
 			targetVectors[joint]=new PVector();
 		}
-		if (bluetooth)
-			BuzzAll();
+		
 	}
 
 	// Elapsed time in seconds since startup

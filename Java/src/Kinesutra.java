@@ -17,6 +17,7 @@ import SimpleOpenNI.IntVector;
 import SimpleOpenNI.SimpleOpenNI;
 import SimpleOpenNI.SimpleOpenNIConstants;
 import controlP5.ControlP5;
+import hypermedia.net.*;
 
 /**
  * The Class Kinesutra.
@@ -24,8 +25,8 @@ import controlP5.ControlP5;
 public class Kinesutra extends PApplet {
 
 	// TODO:  
+	// 	- add wifiConnection class
 	//	- move skeleton drawing into pose class
-	//	- add HapticConnection class that handles buzzer mappings and communication with MC
 	// 	- add refPoseList with filmstrip
 	// 	- restore logger functionality?
 
@@ -33,11 +34,21 @@ public class Kinesutra extends PApplet {
 	private static final long serialVersionUID = 1L;
 	SimpleOpenNI  kinect;
 	PrintWriter logger;
+	
 	Serial port;
+	UDP udp;
+	int udpSendPort = 10553;
+	int udpListenPort = 10554;
+	String udpHostIP = "localhost";
 
 	int [] jointIDs;
-	Boolean bluetooth = false;
-	Boolean serial=false;
+	
+	public static final int HAPTIC_CONNECTION_MODE_NONE = 0;
+	public static final int HAPTIC_CONNECTION_MODE_BLUETOOTH = 1;
+	public static final int HAPTIC_CONNECTION_MODE_SERIAL = 2;
+	public static final int HAPTIC_CONNECTION_MODE_UDP = 3;
+	
+	int hapticConnectionMode = HAPTIC_CONNECTION_MODE_UDP;
 
 	
 	Pose currPose = null;
@@ -61,14 +72,17 @@ public class Kinesutra extends PApplet {
 	 */
 	@Override
 	public void setup() {
-		if (bluetooth)
+		
+		if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_BLUETOOTH)
 			port = new Serial(this, "/dev/tty.FireFly-5F27-SPP", 115200);
-		else if (serial) {
+		else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_SERIAL) {
 			// List all the available serial ports:
 			println(Serial.list());
 
 			// Open the port you are using at the rate you want:
 			port = new Serial(this, Serial.list()[12], 115200);
+		} else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_UDP) {
+			updateUDPConnection();
 		}
 		
 		frameRate(30);
@@ -303,12 +317,28 @@ public class Kinesutra extends PApplet {
 			
 			ArrayList<Character> movementMessages = hapticsController.getHapticsMessagesForMovement(updatingJoint,movementVectors[updatingJoint].x,movementVectors[updatingJoint].y,movementVectors[updatingJoint].z);
 			
-			if (bluetooth || serial) {
+			if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_BLUETOOTH || hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_SERIAL) {
 				for (int i = 0; i < movementMessages.size(); i++) {
 					println("BUZZ: "+ movementMessages.get(i));					
 					port.write(movementMessages.get(i));
-				}	
-			}
+				}		
+			} else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_UDP) {
+				
+				if (movementMessages.size() > 0) {
+					Integer millis = new Integer(millis());
+					String udpMessage = millis.toString();
+					for (int i = 0; i < movementMessages.size(); i++) {
+						udpMessage = udpMessage + "," + movementMessages.get(i);
+					}
+					
+					println("sending message: " + udpMessage);
+					byte[] buffer = udpMessage.getBytes();
+					
+					if (!udp.send(buffer, udpHostIP, udpSendPort)) {
+						println("failed to send to " + udpHostIP + " on port " + udpSendPort + ": " + udpMessage);
+					}
+				}							
+			}			
 		}
 	}
 
@@ -402,5 +432,22 @@ public class Kinesutra extends PApplet {
 	public static void main(String args[]) {
 		PApplet.main(new String[] { "Kinesutra" });
 	}
+	
+	
+	// UDP Handler
+	void receive( byte[] data, String ip, int port ) {  // <-- extended handler
+	   
+	  String message = new String( data );
 
+	  println("Message from UDP connection: " + message);
+	  
+	}
+	
+	void updateUDPConnection() {
+		// create a new datagram connection
+		udp = new UDP( this, udpListenPort); 
+		udp.log( true );
+		//udp.listen( true ); // also listen to incoming messages
+	}
+	
 }

@@ -21,5 +21,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="KineSutra/lib/SimpleOpenNI"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/udp.jar" sourcepath="/Users/skamuter/Code/Processing/libraries/udp"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

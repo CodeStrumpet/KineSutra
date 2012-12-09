@@ -50,10 +50,10 @@ public class Pose {
 		}
 		
 		for (int joint = 0; joint < refPositions.length; joint++) {
-			if (PRIOR_JOINTS[joint]==-1)
+			if (PRIOR_JOINTS[joint]==-1) {
 				// This joint is not relative to any other joints, set movement to 0
-				movementVectors[joint].set(0,0,0);
-			else {
+				movementVectors[joint] = new PVector(0,0,0);
+			} else {
 				// Relative joint
 				// Movement is amount to make this joint's position relative to its 'priorJoint' (the one it is relative to) equal to the same relationship in the reference
 				// Also, scale limb lengths in case the reference had different length limbs
@@ -97,7 +97,17 @@ public class Pose {
 		PVector[] targetVectors = new PVector[positions.length];
 		
 		for (int joint = 0; joint < positions.length; joint++) {
-			targetVectors[joint] = PVector.add(positions[joint], movementVectors[joint]); 
+			if (positions[joint] == null || movementVectors[joint] == null) {
+				if (positions[joint] == null) {
+					positions[joint] = new PVector(0,0,0);
+					parent.println("positions was null");
+				} else if (movementVectors[joint] == null) {
+					movementVectors[joint] = new PVector(0,0,0);
+					parent.println("movementVectors was null");
+				}
+			} 
+			targetVectors[joint] = PVector.add(positions[joint], movementVectors[joint]);	
+			
 		}
 		return targetVectors;
 	}

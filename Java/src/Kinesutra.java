@@ -178,9 +178,9 @@ public class Kinesutra extends PApplet {
 			}
 			currPose.setPositions(jointVectors);
 
-			if (shouldSendCurrentMovementVectors()) {
-				processSkeletonFromCurrentFrame(currentUser);
-				sendCurrentMovementVectors();
+			if (shouldProcessCurrentFrame()) {
+				processSkeletonFromCurrentFrame(currentUser);				
+				updateAndSendCurrentMovementVectors();
 			}
 			pushMatrix();
 			translate(0,0);
@@ -258,17 +258,8 @@ public class Kinesutra extends PApplet {
 		logger.println(elapsed()+","+s);
 	}
 
-	// Process current skeleton position to determine movements needed
-	void processSkeletonFromCurrentFrame(int userId) {
-		
-		currPose.updateMovementVectors(refPose);
-		
-		logger.flush();
-		sample=sample+1;
-	}
-
 	// Decide if haptic updates should be sent yet
-	Boolean shouldSendCurrentMovementVectors() {
+	Boolean shouldProcessCurrentFrame() {
 		float now=elapsed();
 		if ((now<0 || (now-lastHapticUpdate) > hapticUpdateInterval) && refPose != null) {
 			lastHapticUpdate=now;
@@ -276,11 +267,21 @@ public class Kinesutra extends PApplet {
 		}
 		return false;
 	}
+	
+	// Process current skeleton position to determine movements needed
+		void processSkeletonFromCurrentFrame(int userId) {
+			
+			currPose.updateMovementVectors(refPose);
+			
+			logger.flush();
+			sample=sample+1;
+		}
+
 
 	/**
 	 * Send current movement vectors to buzzers (one at a time)
 	 */
-	void sendCurrentMovementVectors() {
+	void updateAndSendCurrentMovementVectors() {
 		PVector[] movementVectors = currPose.getMovementVectors();
 		
 		if (updatingJoint==-1 || movementVectors[updatingJoint].mag()<threshold) {
@@ -293,7 +294,7 @@ public class Kinesutra extends PApplet {
 					break;
 				}
 		}
-		if (updatingJoint!=-1) {
+		if (updatingJoint != -1) {
 			// Buzz the current joint
 			println("Move "+Pose.JOINT_NAMES[updatingJoint]+" by "+movementVectors[updatingJoint].x+","+movementVectors[updatingJoint].y+","+movementVectors[updatingJoint].z);
 			buzzMoves(updatingJoint,movementVectors[updatingJoint].x,movementVectors[updatingJoint].y,movementVectors[updatingJoint].z);

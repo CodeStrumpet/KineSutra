@@ -9,6 +9,8 @@
 #import "SelectionViewController.h"
 #import "TestViewController.h"
 #import "RscMgr.h"
+#import "UDPConnection.h"
+#import "GCDAsyncSocket.h"
 
 #define LOOPBACK_TEST_LEN 4096
 
@@ -38,13 +40,7 @@ typedef enum
     kStatErr = 2
 } StatType;
 
-@interface RootViewController : UITableViewController < RscMgrDelegate, SelectionViewControllerDelegate, TestViewControllerDelegate> {
-	UILabel *ctsLabel;
-	UILabel *dsrLabel;
-	UILabel *cdLabel;
-	UILabel *riLabel;
-	UIBarButtonItem *rtsButton;
-	UIBarButtonItem *dtrButton;
+@interface RootViewController : UITableViewController < RscMgrDelegate, SelectionViewControllerDelegate, TestViewControllerDelegate, UDPConnectionDelegate, GCDAsyncSocketDelegate> {
 	
 	NSDictionary *portConfigTableData;
 	NSArray *portConfigKeys;

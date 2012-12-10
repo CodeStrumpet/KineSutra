@@ -22,5 +22,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/udp.jar" sourcepath="/Users/skamuter/Code/Processing/libraries/udp"/>
+	<classpathentry kind="lib" path="lib/net.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

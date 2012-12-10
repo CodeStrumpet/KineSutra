@@ -27,6 +27,12 @@
 		3FC4B24213981745000E0339 /* iTunesArtwork.png in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4B24113981745000E0339 /* iTunesArtwork.png */; };
 		3FD39A90130DE08800F786BA /* SelectionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3FD39A8E130DE08800F786BA /* SelectionViewController.m */; };
 		3FD39A91130DE08800F786BA /* SelectionViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 3FD39A8F130DE08800F786BA /* SelectionViewController.xib */; };
+		BBE3BFE91675471000CD5836 /* UDPConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = BBE3BFE71675470F00CD5836 /* UDPConnection.m */; };
+		BBE3BFEB1675481300CD5836 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = BBE3BFEA1675481200CD5836 /* Default-568h@2x.png */; };
+		BBE3BFEC16754A1F00CD5836 /* GCDAsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = BBE3BFE21675444C00CD5836 /* GCDAsyncUdpSocket.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		BBE3BFED16754A2300CD5836 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = BBE3BFE01675444C00CD5836 /* GCDAsyncSocket.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		BBE3BFEF16754B0C00CD5836 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BBE3BFEE16754B0C00CD5836 /* CFNetwork.framework */; };
+		BBE3BFF116754B2300CD5836 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BBE3BFF016754B2300CD5836 /* Security.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +65,15 @@
 		8D1107310486CEB800E47090 /* Rsc_Demo-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Rsc_Demo-Info.plist"; plistStructureDefinitionIdentifier = "com.apple.xcode.plist.structure-definition.iphone.info-plist"; sourceTree = "<group>"; };
 		BBE3BFDC16753ADF00CD5836 /* RscMgr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RscMgr.h; sourceTree = "<group>"; };
 		BBE3BFDD16753ADF00CD5836 /* redparkSerial.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = redparkSerial.h; sourceTree = "<group>"; };
+		BBE3BFDF1675444C00CD5836 /* GCDAsyncSocket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GCDAsyncSocket.h; sourceTree = "<group>"; };
+		BBE3BFE01675444C00CD5836 /* GCDAsyncSocket.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncSocket.m; sourceTree = "<group>"; };
+		BBE3BFE11675444C00CD5836 /* GCDAsyncUdpSocket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GCDAsyncUdpSocket.h; sourceTree = "<group>"; };
+		BBE3BFE21675444C00CD5836 /* GCDAsyncUdpSocket.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GCDAsyncUdpSocket.m; sourceTree = "<group>"; };
+		BBE3BFE71675470F00CD5836 /* UDPConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UDPConnection.m; sourceTree = "<group>"; };
+		BBE3BFE81675470F00CD5836 /* UDPConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UDPConnection.h; sourceTree = "<group>"; };
+		BBE3BFEA1675481200CD5836 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
+		BBE3BFEE16754B0C00CD5836 /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
+		BBE3BFF016754B2300CD5836 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +81,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBE3BFF116754B2300CD5836 /* Security.framework in Frameworks */,
+				BBE3BFEF16754B0C00CD5836 /* CFNetwork.framework in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
 				2892E4100DC94CBA00A64D0F /* CoreGraphics.framework in Frameworks */,
@@ -88,6 +105,8 @@
 				3FD39A8E130DE08800F786BA /* SelectionViewController.m */,
 				344E90A9144B4672005BCE12 /* TestViewController.h */,
 				344E90AA144B4672005BCE12 /* TestViewController.m */,
+				BBE3BFE81675470F00CD5836 /* UDPConnection.h */,
+				BBE3BFE71675470F00CD5836 /* UDPConnection.m */,
 				BBE3BFDE1675410F00CD5836 /* 3rd Party */,
 			);
 			path = Classes;
@@ -104,6 +123,9 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				BBE3BFF016754B2300CD5836 /* Security.framework */,
+				BBE3BFEE16754B0C00CD5836 /* CFNetwork.framework */,
+				BBE3BFEA1675481200CD5836 /* Default-568h@2x.png */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				3FAE4A8A13B0024600149F05 /* Redpark SDK */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
@@ -180,6 +202,10 @@
 		BBE3BFDE1675410F00CD5836 /* 3rd Party */ = {
 			isa = PBXGroup;
 			children = (
+				BBE3BFDF1675444C00CD5836 /* GCDAsyncSocket.h */,
+				BBE3BFE01675444C00CD5836 /* GCDAsyncSocket.m */,
+				BBE3BFE11675444C00CD5836 /* GCDAsyncUdpSocket.h */,
+				BBE3BFE21675444C00CD5836 /* GCDAsyncUdpSocket.m */,
 				BBE3BFDC16753ADF00CD5836 /* RscMgr.h */,
 				BBE3BFDD16753ADF00CD5836 /* redparkSerial.h */,
 			);
@@ -249,6 +275,7 @@
 				3F398D9713959B5A002F2EAC /* Serial_icon4_72x72.png in Resources */,
 				3FC4B24213981745000E0339 /* iTunesArtwork.png in Resources */,
 				34399C7E144B71F9002E1E1F /* TestViewController.xib in Resources */,
+				BBE3BFEB1675481300CD5836 /* Default-568h@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -264,6 +291,9 @@
 				28C286E10D94DF7D0034E888 /* RootViewController.m in Sources */,
 				3FD39A90130DE08800F786BA /* SelectionViewController.m in Sources */,
 				344E90AC144B4672005BCE12 /* TestViewController.m in Sources */,
+				BBE3BFE91675471000CD5836 /* UDPConnection.m in Sources */,
+				BBE3BFEC16754A1F00CD5836 /* GCDAsyncUdpSocket.m in Sources */,
+				BBE3BFED16754A2300CD5836 /* GCDAsyncSocket.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

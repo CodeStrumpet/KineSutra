@@ -18,6 +18,8 @@ import SimpleOpenNI.SimpleOpenNI;
 import SimpleOpenNI.SimpleOpenNIConstants;
 import controlP5.ControlP5;
 import hypermedia.net.*;
+import processing.net.*; 
+
 
 /**
  * The Class Kinesutra.
@@ -37,9 +39,10 @@ public class Kinesutra extends PApplet {
 	
 	Serial port;
 	UDP udp;
-	int udpSendPort = 10553;
+	int udpSendPort = 10552;
 	int udpListenPort = 10554;
-	String udpHostIP = "localhost";
+	String udpHostIP = "192.168.1.3";
+	Client myClient; 
 
 	int [] jointIDs;
 	
@@ -47,8 +50,9 @@ public class Kinesutra extends PApplet {
 	public static final int HAPTIC_CONNECTION_MODE_BLUETOOTH = 1;
 	public static final int HAPTIC_CONNECTION_MODE_SERIAL = 2;
 	public static final int HAPTIC_CONNECTION_MODE_UDP = 3;
+	public static final int HAPTIC_CONNECTION_MODE_TCP = 4;
 	
-	int hapticConnectionMode = HAPTIC_CONNECTION_MODE_UDP;
+	int hapticConnectionMode = HAPTIC_CONNECTION_MODE_TCP;
 
 	
 	Pose currPose = null;
@@ -83,6 +87,8 @@ public class Kinesutra extends PApplet {
 			port = new Serial(this, Serial.list()[12], 115200);
 		} else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_UDP) {
 			updateUDPConnection();
+		} else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_TCP) {
+			updateTCPConnection();
 		}
 		
 		frameRate(30);
@@ -338,7 +344,19 @@ public class Kinesutra extends PApplet {
 						println("failed to send to " + udpHostIP + " on port " + udpSendPort + ": " + udpMessage);
 					}
 				}							
-			}			
+			} else if (hapticConnectionMode == this.HAPTIC_CONNECTION_MODE_TCP) {
+				if (movementMessages.size() > 0) {
+					Integer millis = new Integer(millis());
+					String udpMessage = millis.toString();
+					for (int i = 0; i < movementMessages.size(); i++) {
+						udpMessage = udpMessage + "," + movementMessages.get(i);
+					}
+					
+					println("sending message: " + udpMessage);
+					byte[] buffer = udpMessage.getBytes();
+					myClient.write(buffer);					
+				}		
+			}
 		}
 	}
 
@@ -445,9 +463,12 @@ public class Kinesutra extends PApplet {
 	
 	void updateUDPConnection() {
 		// create a new datagram connection
-		udp = new UDP( this, udpListenPort); 
+		udp = new UDP( this, 10552, udpHostIP); 
 		udp.log( true );
-		//udp.listen( true ); // also listen to incoming messages
+		udp.listen( true ); // also listen to incoming messages
 	}
 	
+	void updateTCPConnection() {
+		 myClient = new Client(this, udpHostIP, 10555);
+	}
 }

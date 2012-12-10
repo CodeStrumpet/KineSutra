@@ -9,6 +9,9 @@
 #import "SelectionViewController.h"
 #import "TestViewController.h"
 #import "RscMgr.h"
+#import <ifaddrs.h>
+#import <arpa/inet.h>
+#import "GCDAsyncSocket.h"
 
 enum 
 {
@@ -19,6 +22,13 @@ enum
 	kNumStats = 3,
 	
 };
+
+#define WELCOME_MSG  0
+#define ECHO_MSG     1
+#define WARNING_MSG  2
+
+#define READ_TIMEOUT 15.0
+#define READ_TIMEOUT_EXTENSION 10.0
 
 
 #define MODEM_STAT_ON_COLOR [UIColor colorWithRed:0.0/255.0 green:255.0/255.0 blue:0.0/255.0 alpha:1.0]
@@ -31,33 +41,45 @@ enum
 #define CABLE_NOT_CONNECTED_TEXT @"Not Connected";
 #define CABLE_REQUIRES_PASSCODE_TEXT @"Passcode Required"
 
+@interface RootViewController ()
 
+    @property (nonatomic, retain) UDPConnection *udpConnection;
+
+    @property (nonatomic, retain) GCDAsyncSocket *listenSocket;
+    @property (nonatomic, retain) NSMutableArray *connectedSockets;
+    @property (nonatomic, assign) BOOL isRunning;
+
+@end
 
 @implementation RootViewController
-
+@synthesize udpConnection;
+@synthesize listenSocket;
+@synthesize connectedSockets;
+@synthesize isRunning;
 
 #pragma mark -
 #pragma mark View lifecycle
 
-
+- (void)dealloc {
+    [udpConnection release];
+    [listenSocket release];
+	if (portConfigKeys) [portConfigKeys release];
+	if (portConfigTableData) [portConfigTableData release];
+	
+	if (rscMgr) [rscMgr release];
+    [super dealloc];
+}
 
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    isRunning = NO;
+    
     // Create the Test View - this is where rx bytes are dumped to a scrollable text area
     // user can type bytes to send or initiate a loopback test
     testingViewActive = NO;
     testController = [[TestViewController alloc] initWithNibName:@"TestViewController" bundle:nil];
-
-    // Add butons to bottom toolbar for turning on/ff RTS and DTR.  This demonstrates how
-    // to enable/disable the modem leads
-	rtsButton = [[[UIBarButtonItem alloc] initWithTitle:@"RTS" style: UIBarButtonItemStyleBordered target:self action:@selector(toggleRTS)] autorelease];
-	[rtsButton setEnabled:FALSE];
-
-	dtrButton = [[[UIBarButtonItem alloc] initWithTitle:@"DTR" style: UIBarButtonItemStyleBordered target:self action:@selector(toggleDTR)] autorelease];
-	[dtrButton setEnabled:FALSE];
-
 	
 	cableState = kCableNotConnected; // maintain our own state variable for cable status
 	passRequired = NO; // ignore for future use
@@ -77,56 +99,6 @@ enum
 					  sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
 	[portConfigKeys retain];
 	
-    // Create modem status indicators on the toolbar
-	NSMutableArray *modemStatusButtons = [[NSMutableArray alloc] init];	
-	UIBarButtonItem *barButton;
-	
-	ctsLabel = [[UILabel alloc] initWithFrame:MODEM_STAT_RECT];
-	[ctsLabel setBackgroundColor:[UIColor clearColor]];
-	[ctsLabel setTextColor:MODEM_STAT_OFF_COLOR];
-	[ctsLabel setTextAlignment:UITextAlignmentCenter];
-	ctsLabel.text = @"CTS";
-	ctsLabel.font = [UIFont boldSystemFontOfSize:17.0];
-	barButton = [[[UIBarButtonItem alloc] initWithCustomView:ctsLabel] autorelease];
-	[modemStatusButtons addObject:barButton];
-		
-	dsrLabel = [[UILabel alloc] initWithFrame:MODEM_STAT_RECT];
-	[dsrLabel setBackgroundColor:[UIColor clearColor]];
-	[dsrLabel setTextColor:MODEM_STAT_OFF_COLOR];
-	[dsrLabel setTextAlignment:UITextAlignmentCenter];
-	dsrLabel.text = @"DSR";
-	dsrLabel.font = [UIFont boldSystemFontOfSize:17.0];
-
-	barButton = [[[UIBarButtonItem alloc] initWithCustomView:dsrLabel] autorelease];
-	[modemStatusButtons addObject:barButton];
-
-	cdLabel = [[UILabel alloc] initWithFrame:MODEM_STAT_RECT];
-	[cdLabel setBackgroundColor:[UIColor clearColor]];
-	[cdLabel setTextColor:MODEM_STAT_OFF_COLOR];
-	[cdLabel setTextAlignment:UITextAlignmentCenter];
-	cdLabel.text = @"CD";
-	cdLabel.font = [UIFont boldSystemFontOfSize:17.0];
-
-	barButton = [[[UIBarButtonItem alloc] initWithCustomView:cdLabel] autorelease];
-	[modemStatusButtons addObject:barButton];
-
-	riLabel = [[UILabel alloc] initWithFrame:MODEM_STAT_RECT];
-	[riLabel setBackgroundColor:[UIColor clearColor]];
-	[riLabel setTextColor:MODEM_STAT_OFF_COLOR];
-	[riLabel setTextAlignment:UITextAlignmentCenter];
-	riLabel.text = @"RI";
-	riLabel.font = [UIFont boldSystemFontOfSize:17.0];
-
-	barButton = [[[UIBarButtonItem alloc] initWithCustomView:riLabel] autorelease];
-	[modemStatusButtons addObject:barButton];
-	
-	[modemStatusButtons addObject:rtsButton];
-	[modemStatusButtons addObject:dtrButton];
-	
-	
-	[self setToolbarItems:modemStatusButtons animated:NO];
-	
-	[modemStatusButtons release];
 	
 	self.navigationItem.rightBarButtonItem.target = self;
 
@@ -139,9 +111,37 @@ enum
 	txCount = 0;
     errCount = 0;
     
+    // get UDPConnection going
+    //[self refreshUDPConnection];
     
+    
+    // show ip
+    NSLog(@"IP Address:  %@", [self getIPAddress]);
+    
+    //dispatch_queue_t socketQueue = dispatch_queue_create("socketQueue", NULL);
+    
+    listenSocket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0)];
+    
+    // Setup an array to store all accepted client connections
+    connectedSockets = [[NSMutableArray alloc] initWithCapacity:1];
+    
+    [self startStop:self];
+    
+    
+}
 
-	
+- (void)refreshUDPConnection {    
+    [self.udpConnection close];
+    self.udpConnection = nil;
+    udpConnection = [[UDPConnection alloc] init];
+    
+    // self.udpConnection.socketHost = hostIP; if we know the remote host ip
+    udpConnection.delegate = self;
+    
+    self.udpConnection.localPort = 10552;
+
+    [self.udpConnection setupSocket];
+
 }
 
 // reads a plist file from the bundle directory and
@@ -169,17 +169,6 @@ enum
 }
 
 
-
-#pragma mark -
-#pragma mark Memory management
-
-- (void)didReceiveMemoryWarning {
-    // Releases the view if it doesn't have a superview.
-    [super didReceiveMemoryWarning];
-    
-    // Relinquish ownership any cached data, images, etc that aren't in use.
-}
-
 - (void)viewDidUnload {
     // Relinquish ownership of anything that can be recreated in viewDidLoad or on demand.
     // For example: self.myOutlet = nil;
@@ -187,18 +176,44 @@ enum
 }
 
 
-- (void)dealloc {
-	
-	if (riLabel) [riLabel release];
-	if (dsrLabel) [dsrLabel release];
-	if (ctsLabel) [ctsLabel release];
-	if (cdLabel) [cdLabel release];
-	
-	if (portConfigKeys) [portConfigKeys release];
-	if (portConfigTableData) [portConfigTableData release];
-	
-	if (rscMgr) [rscMgr release];
-    [super dealloc];
+#pragma mark -
+#pragma mark UDPConnectionDelegate
+
+- (void)UDPConnection:(UDPConnection *)theUDPConnection didReceiveMessage:(NSString *)message fromHost:(NSString *)theHost onPort:(int)thePort {
+    NSLog(@"Received message: %@", message);
+    // Update display if test controller is visible
+    if(testingViewActive == YES)
+    {        
+        
+        NSMutableString *s1 = [[NSMutableString alloc] initWithString:testController.rxText.text];
+        
+        if (message != nil && s1 != nil)
+        {
+            
+            [s1 appendString:message];
+            
+            int len = [s1 length];
+            
+            //limit to 3000 bytes in the Rx window
+            
+            if(len > 3000)
+            {
+                NSString *s2 = (NSMutableString *)[s1 substringFromIndex:(len - 3000)];
+                len = [s1 length];
+                //NSLog(@"new len=%i\n", len);
+                testController.rxText.text= s2;
+            }
+            else
+            {
+                testController.rxText.text= s1;
+            }
+            
+            testController.rxText.selectedRange = NSMakeRange([testController.rxText.text length], 0);
+            
+            [s1 release];
+        }
+    }
+
 }
 
 
@@ -221,11 +236,11 @@ enum
 		case kSectionCableStatus:
 			nRows = kNumCableStatus;
 			break;
-		case kSectionPortConfig:
-			nRows = [[portConfigTableData allKeys] count];
-			break;
 		case kSectionStats:
 			nRows = kNumStats;
+			break;
+        case kSectionPortConfig:
+			nRows = [[portConfigTableData allKeys] count];
 			break;
 		default:
 			nRows = 0;
@@ -245,8 +260,6 @@ enum
     if (cell == nil) {
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:CellIdentifier] autorelease];
     }
-	
-	
     
 	if (indexPath.row % 2)
 	{
@@ -427,10 +440,6 @@ enum
 	BOOL rtsState = [rscMgr getRts];
 	
 	rtsState = !rtsState;
-	
-	if (rtsState) rtsButton.style = UIBarButtonItemStyleDone;
-	else rtsButton.style = UIBarButtonItemStyleBordered;
-	
 	[rscMgr setRts:rtsState];
 }
 
@@ -439,9 +448,6 @@ enum
 	BOOL dtrState = [rscMgr getDtr];
 	
 	dtrState = !dtrState;
-	
-	if (dtrState) dtrButton.style = UIBarButtonItemStyleDone;
-	else dtrButton.style = UIBarButtonItemStyleBordered;
 	
 	[rscMgr setDtr:dtrState];
 }
@@ -572,15 +578,6 @@ enum
     // In general, this would be a good place to setBaud, setDataSize, etc...
 	// Example
 	// [rscMgr setBaud:57600];
-		
-	// Cable connected so enable dtr and rts toggle buttons
-	if (rtsButton != nil)
-	{
-		[rtsButton setEnabled:TRUE];
-		[dtrButton setEnabled:TRUE];
-	}
-    
-    
 }
 
 
@@ -594,13 +591,7 @@ enum
 	
 	cableState = kCableNotConnected;
 	passRequired = NO;
-	
-	if (rtsButton != nil)
-	{
-		[rtsButton setEnabled:FALSE];
-		[dtrButton setEnabled:FALSE];
-	}
-	
+		
 	loopbackTestRunning = NO;
     loopContinous = NO;
     rxEcho = NO;
@@ -617,13 +608,7 @@ enum
 
 - (void) portStatusChanged
 {
-	int modemStatus = [rscMgr getModemStatus];
 	static serialPortStatus portStat;
-    
-	[ctsLabel setTextColor:(modemStatus & MODEM_STAT_CTS) ? MODEM_STAT_ON_COLOR : MODEM_STAT_OFF_COLOR];
-	[riLabel setTextColor:(modemStatus & MODEM_STAT_RI) ? MODEM_STAT_ON_COLOR : MODEM_STAT_OFF_COLOR];
-	[dsrLabel setTextColor:(modemStatus & MODEM_STAT_DSR) ? MODEM_STAT_ON_COLOR : MODEM_STAT_OFF_COLOR];
-	[cdLabel setTextColor:(modemStatus & MODEM_STAT_DCD) ? MODEM_STAT_ON_COLOR : MODEM_STAT_OFF_COLOR];
     
     [rscMgr getPortStatus:&portStat];
     
@@ -818,4 +803,188 @@ enum
 	testingViewActive = NO;
 }
 
+
+- (NSString *)getIPAddress
+{
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    NSString *wifiAddress = nil;
+    NSString *cellAddress = nil;
+    
+    // retrieve the current interfaces - returns 0 on success
+    if(!getifaddrs(&interfaces)) {
+        // Loop through linked list of interfaces
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            sa_family_t sa_type = temp_addr->ifa_addr->sa_family;
+            if(sa_type == AF_INET || sa_type == AF_INET6) {
+                NSString *name = [NSString stringWithUTF8String:temp_addr->ifa_name];
+                NSString *addr = [NSString stringWithUTF8String:inet_ntoa(((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr)]; // pdp_ip0
+                NSLog(@"NAME: \"%@\" addr: %@", name, addr); // see for yourself
+                
+                if([name isEqualToString:@"en0"]) {
+                    // Interface is the wifi connection on the iPhone
+                    wifiAddress = addr;
+                } else
+                    if([name isEqualToString:@"pdp_ip0"]) {
+                        // Interface is the cell connection on the iPhone
+                        cellAddress = addr;
+                    }
+            }
+            temp_addr = temp_addr->ifa_next;
+        }
+        // Free memory
+        freeifaddrs(interfaces);
+    }
+    NSString *addr = wifiAddress ? wifiAddress : cellAddress;
+    return addr ? addr : @"0.0.0.0";
+}
+
+
+- (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket
+{
+	// This method is executed on the socketQueue (not the main thread)
+	
+	@synchronized(connectedSockets)
+	{
+		[connectedSockets addObject:newSocket];
+	}
+	
+	NSString *host = [newSocket connectedHost];
+	UInt16 port = [newSocket connectedPort];
+	
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+            
+			NSLog(@"Accepted client %@:%hu", host, port);
+            
+		}
+	});
+	
+	NSString *welcomeMsg = @"Welcome to the AsyncSocket Echo Server\r\n";
+	NSData *welcomeData = [welcomeMsg dataUsingEncoding:NSUTF8StringEncoding];
+	
+	[newSocket writeData:welcomeData withTimeout:-1 tag:WELCOME_MSG];
+	
+	[newSocket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
+}
+
+- (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag
+{
+	// This method is executed on the socketQueue (not the main thread)
+	
+	if (tag == ECHO_MSG)
+	{
+		[sock readDataToData:[GCDAsyncSocket CRLFData] withTimeout:READ_TIMEOUT tag:0];
+	}
+}
+
+- (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag
+{
+	// This method is executed on the socketQueue (not the main thread)
+	
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+            
+			NSData *strData = [data subdataWithRange:NSMakeRange(0, [data length] - 2)];
+			NSString *msg = [[NSString alloc] initWithData:strData encoding:NSUTF8StringEncoding];
+			if (msg)
+			{
+                NSLog(@"Received message: %@", msg);
+			}
+			else
+			{
+				NSLog(@"Error converting received data into UTF-8 String");
+			}
+            
+		}
+	});
+	
+	// Echo message back to client
+	[sock writeData:data withTimeout:-1 tag:ECHO_MSG];
+}
+
+/**
+ * This method is called if a read has timed out.
+ * It allows us to optionally extend the timeout.
+ * We use this method to issue a warning to the user prior to disconnecting them.
+ **/
+- (NSTimeInterval)socket:(GCDAsyncSocket *)sock shouldTimeoutReadWithTag:(long)tag
+                 elapsed:(NSTimeInterval)elapsed
+               bytesDone:(NSUInteger)length
+{
+	if (elapsed <= READ_TIMEOUT)
+	{
+		NSString *warningMsg = @"Are you still there?\r\n";
+		NSData *warningData = [warningMsg dataUsingEncoding:NSUTF8StringEncoding];
+		
+		[sock writeData:warningData withTimeout:-1 tag:WARNING_MSG];
+		
+		return READ_TIMEOUT_EXTENSION;
+	}
+	
+	return 0.0;
+}
+
+- (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err
+{
+	if (sock != listenSocket)
+	{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			@autoreleasepool {
+                
+				NSLog(@"Client Disconnected");
+                
+			}
+		});
+		
+		@synchronized(connectedSockets)
+		{
+			[connectedSockets removeObject:sock];
+		}
+	}
+}
+
+- (IBAction)startStop:(id)sender
+{
+	if(!isRunning)
+	{
+		int port = 10555;
+		
+
+		
+		NSError *error = nil;
+		if(![listenSocket acceptOnPort:port error:&error])
+		{
+			NSLog(@"Error starting server: %@", error);
+			return;
+		}
+		
+		NSLog(@"Echo server started on port %hu", [listenSocket localPort]);
+		isRunning = YES;
+		
+	}
+	else
+	{
+		// Stop accepting connections
+		[listenSocket disconnect];
+		
+		// Stop any client connections
+		@synchronized(connectedSockets)
+		{
+			NSUInteger i;
+			for (i = 0; i < [connectedSockets count]; i++)
+			{
+				// Call disconnect on the socket,
+				// which will invoke the socketDidDisconnect: method,
+				// which will remove the socket from the list.
+				[[connectedSockets objectAtIndex:i] disconnect];
+			}
+		}
+		
+		NSLog(@"Stopped Echo server");
+		isRunning = false;
+		
+	}
+}
 @end
